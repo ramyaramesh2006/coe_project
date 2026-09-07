@@ -1,9 +1,13 @@
 # Review 1 Report: Aisle Congestion Simulator and Wave-Release Controller
 
 **Academic Department:** Department of Computer Science & Engineering (Cyber Security)  
-**Project Milestone:** Review 1 Evaluation  
-**Prototype Completion Status:** Approximately 35% Complete  
+**Project Milestone:** Review 1 Evaluation & Enhanced Prototype Validation  
+**Prototype Completion Status:** Approximately 40–42% Overall Project Maturity  
 **Date:** September 2026  
+
+---
+
+> Approximately 40–42% of the overall project has been developed as a functional simulation-based prototype. The work is intentionally not presented as a final production system.
 
 ---
 
@@ -13,7 +17,7 @@
 ---
 
 ## 2. Project Objective
-The primary objective of this project is to develop a simulation-based congestion management framework to eliminate worker congestion and optimize order fulfillment in automotive parts warehouses. Visually similar parts stored in high-density aisles lead to worker clustering, physical gridlocks, extended waiting times, and fulfillment delays.
+The primary objective of this project is to develop a simulation-based congestion management framework to eliminate worker congestion and optimize order fulfillment in automotive parts warehouses. Visually similar components stored in narrow aisles lead to worker clustering, physical gridlocks, extended waiting times, and fulfillment delays.
 
 The proposed system models dynamic aisle worker density and implements a closed-loop wave-release controller that evaluates real-time aisle congestion against configurable safety thresholds, delaying or pacing dispatches to prevent bottleneck formation while maintaining robust operation during IoT network and sensor telemetry failures.
 
@@ -29,128 +33,94 @@ Automotive spare parts warehouses present distinct logistical and cyber-physical
 
 ---
 
-## 4. Work Completed So Far
-The following production-grade Python modules and test suites have been implemented from scratch and verified:
-1. **`src/data_generator.py`**: Layout definition, coordinate grid mapping, Manhattan routing, and synthetic order/worker dataset generation.
-2. **`src/congestion.py`**: Mathematical worker density calculation, zero-division protection, input validation, and 4-tier operational classification.
-3. **`src/controller.py`**: Wave-release decision logic (`ALLOW`, `DELAY`, `BLOCK`), configurable safety threshold enforcement, and manual fallback pacing.
-4. **`src/simulation.py`**: Discrete-event simulation engine executing Baseline (unregulated) and Controlled (wave-managed) pick cycles.
-5. **`src/metrics.py`**: Computation of waiting time, throughput, travel distance, financial cost model, carbon emissions, and programmatic comparative tables.
-6. **`src/scenarios.py`**: Automated execution pipelines for Normal Operation, Peak Congestion, Sensor Failure, and Threshold Sensitivity sweeps.
-7. **`tests/`**: Full Pytest automated test suite (12 test functions covering edge cases, controller decisions, non-negative wait times, and reproducibility).
-8. **`run_experiments.py`**: Master experiment runner generating datasets, scenarios, CSV summaries, and 10 analytical plots.
-9. **`Aisle_Congestion_Simulator.ipynb`**: Comprehensive 30-section Jupyter Notebook executable end-to-end.
+## 4. Current Work Categorization
+
+### A. Completed / Working Modules
+- **Warehouse Simulation Engine:** Discrete-event execution modeling worker traversal and picking intervals.
+- **Congestion Detection & Formulation:** Formula $(\text{workers} / \text{capacity}) \times 100$ with zero-capacity and negative-input guards.
+- **Congestion Classification:** 4-tier operational classification (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
+- **Wave-Release Controller:** Dynamic gating with `ALLOW`, `DELAY`, `BLOCK` decisions based on safe thresholds.
+- **Baseline vs Controlled Comparison:** Dual-mode evaluation quantifying bottleneck reduction and trade-offs.
+- **Failure Fallback:** Autonomous transition to `MANUAL FALLBACK` mode with conservative release pacing.
+- **Performance Metrics Engine:** Programmatic computation of waiting time, throughput, travel distance, cost, and emissions.
+- **Automated Testing Suite:** 23 passing tests covering unit functions, boundary conditions, and scenarios.
+- **Documentation & Notebook:** 22-section interactive Jupyter Notebook and comprehensive repository documentation.
+
+### B. Additional Prototype Validation (Maturity: ~40–42%)
+- **Multi-Load Scenario Pipeline:** Executing and comparing Low Load, Normal Load, Peak Congestion, and Extreme Load stress tests.
+- **Dedicated Hotspot Analysis:** Quantifying top-3 congested aisles (A03, A07, A02), event frequencies, and saturation durations.
+- **Threshold Sensitivity Analysis:** Safe threshold sweeps from 60% to 90% tracking decision breakdowns (`ALLOW`, `DELAY`, `BLOCK`).
+- **Controller Boundary Testing:** Rigorous unit tests for exact threshold boundaries ($74.9\%, 75.0\%, 75.1\%, 100.0\%$), batch requests, and missing telemetry.
+- **Multi-Run Statistical Validation:** Multi-seed evaluation across 5 random seeds (`42, 101, 202, 303, 404`) computing Mean $\pm$ Standard Deviation bounds.
+- **Expanded Visualizations:** 10 analytical Matplotlib figures capturing scenario loads, hotspot profiles, decision distributions, and multi-seed variability.
+
+### C. Pending Work (Reviews 2 & 3 Roadmap)
+- **Dynamic In-Transit Re-Routing:** Graph-based dynamic rerouting (A* / Dijkstra) diverting workers around downstream congested aisles.
+- **Microscopic Crowd Dynamics:** Modeling passing slowdowns and deceleration when two carts meet in a narrow aisle.
+- **Real-Time Message Broker Integration:** Simulating live IoT sensor feeds using MQTT / Kafka pub-sub brokers.
+- **Cyber-Security Threat Modeling:** Adversarial sensor spoofing attack simulation (false zero-congestion injection) and cryptographic verification.
+- **Interactive Floor Dashboard & GUI:** Real-time 2D animated web interface (Streamlit / Dash).
+- **Physical Pilot & Warehouse Validation:** Benchmarking against physical AGVs or industrial warehouse telemetry.
 
 ---
 
-## 5. Key Features Completed
-All features listed below have been implemented, tested, and demonstrated:
-- **Synthetic Warehouse Dataset:** 120 unique workers, 350 unique orders, 990 pick operations across 12 aisles and 3 zones, with non-uniform aisle popularity.
-- **Worker Path Simulation:** 2D coordinate grid (3x4 topology, 15m grid units) with orthogonal Manhattan distance modeling.
-- **Congestion Calculation:** Formula $\text{Congestion } \% = (\text{Workers} / \text{Capacity}) \times 100$ with explicit guards for zero capacity, negative workers, and null values.
-- **Congestion Classification:** 4-tier operational classification: `LOW` (0–<50%), `MEDIUM` (50–<75%), `HIGH` (75–<100%), and `CRITICAL` ($\ge 100\%$).
-- **Wave-Release Controller:** Closed-loop controller evaluating target aisle density against `SAFE_THRESHOLD` (75%) with anti-starvation retry limits.
-- **Normal Operation Scenario:** Baseline steady-state warehouse flow evaluation.
-- **Peak Congestion Scenario:** High-density shift stress-testing popular aisles A03 and A07 (2.8x peak multiplier).
-- **Sensor / Network Failure Scenario:** Simulates IoT telemetry blackout (`sensor_available = False`); activates `MANUAL FALLBACK` mode with zero crashes.
-- **Manual Fallback Mode:** Paces releases using conservative staging rules when sensor data is unavailable.
-- **Waiting-Time Calculation:** Strictly non-negative programmatic calculation: $\text{waiting\_time} = \text{actual\_release} - \text{requested\_release} \ge 0$.
-- **Travel-Distance Calculation:** Exact cumulative distance computed along grid paths from depot through order waypoints.
-- **Cost Estimation:** Transparent operational financial model incorporating labor wage (\$0.35/min), equipment travel wear (\$0.02/m), and idle delay penalties (\$0.25/min).
-- **Emission Estimation:** Transparent carbon footprint model ($0.00015\text{ kg CO}_2\text{e}$ per meter traveled).
-- **Baseline vs. Controlled Comparison:** Double-run comparative execution computing absolute differences and percentage improvements programmatically.
-- **Sensitivity Analysis:** Safe threshold parameter sweep ($60\%, 65\%, 70\%, 75\%, 80\%, 85\%, 90\%$) mapping waiting time and bottleneck trade-offs.
-- **Performance Graphs:** 10 publication-quality Matplotlib figures visualising congestion distributions, throughput, costs, and warehouse topology.
+## 5. Summary of Empirical Results
+
+All results reported below were generated programmatically by the simulation pipeline (`run_experiments.py`, Seed = 42):
+
+### 1. Multi-Load Experimental Scenarios:
+| Scenario | Mode | Orders | Throughput (ord/hr) | Avg Wait (s) | Max Congestion (%) | Critical Events | Total Cost (\$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Low Load** | CONTROLLED | 180 | 103.43 | 0.17 s | 100.00% | 16 | \$569.52 |
+| **Normal Load** | CONTROLLED | 300 | 172.05 | 2.10 s | 166.67% | 47 | \$945.40 |
+| **Peak Load (Base)** | BASELINE | 350 | 200.83 | 0.00 s | 266.67% | 138 | \$1,039.58 |
+| **Peak Load (Ctrl)** | CONTROLLED | 350 | 200.83 | 7.29 s | 266.67% | 132 | \$1,050.21 |
+| **Extreme Load (Base)**| BASELINE | 450 | 255.96 | 0.00 s | 300.00% | 184 | \$1,284.27 |
+| **Extreme Load (Ctrl)**| CONTROLLED | 450 | 255.96 | 17.00 s | 300.00% | 191 | \$1,316.14 |
+
+### 2. Baseline vs Controlled Operation (Peak Load):
+- **Critical Congestion Events:** Reduced from 138 down to 132 (**+4.35% improvement**).
+- **Staging Delay Trade-off:** Average wait increased from 0.00s to 7.29s (max delay 120.0s across 57 delayed orders).
+- **Throughput:** Maintained at 200.83 orders/hour with zero degradation.
+- **Cost Trade-off:** Slight increase from \$1,039.58 to \$1,050.21 (+1.02%) due to the staging delay SLA penalty (\$0.25/min).
+
+### 3. Dedicated Hotspot Analysis:
+| Rank | Aisle | Zone | Capacity | Avg Congestion | Max Congestion | Critical Events | High Events | Duration (s) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | **A03** | Zone A Fast Moving | 3 | 65.88% | 266.67% | 70 | 0 | 2,100.0 s |
+| **2** | **A07** | Zone B Engine Parts | 3 | 62.74% | 233.33% | 66 | 0 | 1,980.0 s |
+| **3** | **A02** | Zone A Fast Moving | 4 | 12.26% | 100.00% | 2 | 0 | 60.0 s |
+| 4 | A05 | Zone B Engine Parts | 4 | 8.96% | 75.00% | 0 | 4 | 120.0 s |
+| 5 | A01 | Zone A Fast Moving | 4 | 7.90% | 75.00% | 0 | 4 | 120.0 s |
+
+### 4. Multi-Seed Statistical Validation (Seeds: 42, 101, 202, 303, 404):
+| Metric | Mean | Std | Min | Max |
+| :--- | :---: | :---: | :---: | :---: |
+| **Baseline Critical Events** | 123.00 | 9.12 | 113.00 | 138.00 |
+| **Controlled Critical Events** | 121.80 | 6.55 | 113.00 | 132.00 |
+| **Critical Reduction (%)** | +0.58% | 7.46% | -11.50% | +8.87% |
+| **Controlled Avg Waiting Time (s)** | 8.14 s | 1.26 s | 7.03 s | 10.54 s |
+| **Controlled Delayed Orders** | 62.80 | 5.88 | 57.00 | 73.00 |
+| **Throughput (orders/hr)** | 198.47 | 1.37 | 197.15 | 200.83 |
+| **Total Estimated Cost (\$)** | \$1,048.11 | \$17.54 | \$1,029.19 | \$1,080.51 |
 
 ---
 
-## 6. Currently Working Components
-The entire pipeline is currently working and executable from the terminal or interactive Jupyter Notebook:
-- **Test Suite:** Executing `pytest tests/ -v` runs 12 automated unit and integration tests, all passing with zero errors.
-- **Experiment Pipeline:** Executing `python run_experiments.py` runs the entire synthetic data generation, 3 operational scenarios, sensitivity sweep, and plot generation in under 20 seconds.
-- **Interactive Notebook:** `Aisle_Congestion_Simulator.ipynb` runs from top to bottom with zero manual intervention.
+## 6. Sensitivity Analysis Findings & Discrete Queuing Note
+Testing thresholds $[60\%, 65\%, 70\%, 75\%, 80\%, 85\%, 90\%]$:
+- At thresholds $\le 65\%$, the controller enters an aggressive gating regime (127 delayed orders, 21.26s average wait), throttling entry when 2 workers are inside capacity-3 aisles ($66.7\% \ge 60\%$).
+- At thresholds $\ge 70\%$, the controller operates in a moderate gating regime (72 delayed orders, 8.57s average wait), allowing 2 workers ($66.7\% < 70\%$) and only blocking when 3 workers saturate the aisle ($100\% \ge 70\%$).
+- This step-function plateau between 70% and 90% is a legitimate mathematical consequence of discrete integer worker counts in small-capacity aisles ($w/3 \in \{33.3\%, 66.7\%, 100\%\}$), where no discrete occupancy state physically exists between 66.7% and 100%.
 
 ---
 
-## 7. Results
-The following quantitative results were generated directly from actual execution of the simulation (Random Seed = 42, 350 Orders, 120 Workers, 12 Aisles):
-
-### Scenario A: Normal Operation
-- **Average Congestion:** 13.66%
-- **Maximum Congestion:** 166.67%
-- **Fulfillment Throughput:** 172.05 orders/hour
-- **Average Waiting Time:** 2.10 seconds
-- **Critical Congestion Hits:** 47
-
-### Scenario B: Peak Congestion (Baseline vs. Controlled)
-- **Baseline Critical Hits:** 138 occurrences where aisles breached 100% capacity.
-- **Controlled Critical Hits:** 132 occurrences (**4.35% reduction in critical bottlenecks**).
-- **Baseline Average Waiting Time:** 0.00 s (orders dispatched immediately regardless of aisle gridlock).
-- **Controlled Average Waiting Time:** 7.29 s (maximum delay: 120.00 s across 57 delayed orders).
-- **Throughput:** Maintained at **200.83 orders/hour** under both modes.
-- **Total Worker Travel Distance:** 30,210.0 meters.
-- **Estimated Carbon Emissions:** 4.5315 kg $\text{CO}_2\text{e}$.
-- **Total Operational Cost:** Baseline: \$1,039.58 | Controlled: \$1,050.21 (+1.02% difference due to staging idle cost parameter).
-
-### Scenario C: Sensor Failure & Manual Fallback
-- **System Health:** Transitioned autonomously to `SYSTEM STATUS: SENSOR FAILURE` and `MODE: MANUAL FALLBACK`.
-- **Reliability:** Successfully processed 300 dispatches in fallback mode with zero unhandled exceptions.
-
-### Safe Threshold Sensitivity Sweep:
-| Threshold | Avg Wait (s) | Total Wait (s) | Throughput (ord/hr) | Critical Hits | Delayed Orders | Est. Cost (\$) |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **60%** | 21.26 | 7,440.0 | 198.21 | 130 | 127 | \$1,061.07 |
-| **65%** | 21.26 | 7,440.0 | 198.21 | 130 | 127 | \$1,061.07 |
-| **70%** | 8.57 | 3,000.0 | 198.46 | 126 | 72 | \$1,042.57 |
-| **75%** | 8.57 | 3,000.0 | 198.46 | 126 | 72 | \$1,042.57 |
-| **80%** | 8.57 | 3,000.0 | 198.46 | 126 | 72 | \$1,042.57 |
-| **85%** | 8.57 | 3,000.0 | 198.46 | 126 | 72 | \$1,042.57 |
-| **90%** | 8.57 | 3,000.0 | 198.46 | 126 | 72 | \$1,042.57 |
+## 7. Current Prototype Limitations
+1. **Constant Walking Pace:** Modeled at a uniform 1.0 m/s without simulating acceleration curves or turning geometry.
+2. **Pre-Determined Order Paths:** Worker itineraries are fixed at dispatch; dynamic diversion around active bottlenecks is not implemented.
+3. **Synchronous Sensor Abstraction:** Telemetry drops are simulated via boolean flags rather than network packet latency or socket disconnects.
+4. **Centroid Coordinates:** Distances model aisle centerlines rather than individual shelf tiers or bin faces.
 
 ---
 
-## 8. Baseline vs Controlled Operation
-In the **Baseline** setup, orders are released immediately into the warehouse upon arrival. When sudden bursts of pick orders target popular components (Aisles A03 and A07), pickers enter simultaneously, causing severe physical congestion (up to 266.67% of capacity).
-
-In the **Controlled** setup, the wave-release controller gates worker release at the staging area. Rather than letting workers enter an already jammed aisle, the controller delays release by 30-second intervals until the aisle headcount drops below the safe threshold (75%).
-- **Key Insight:** Staging delay is an intentional operational trade-off. Holding 57 orders at staging for an average of 7.29 seconds directly reduced critical aisle saturation events by 4.35% without degrading overall throughput (200.83 orders/hour).
-- **Cost Trade-off:** Because workers spent aggregate time in staging delay, the estimated operational cost rose slightly from \$1,039.58 to \$1,050.21 (+1.02%).
-
----
-
-## 9. Current Limitations
-In keeping with academic honesty and Review 1 prototype scope:
-1. **Simplified Worker Motion Dynamics:** Travel speed is modeled at a uniform 1.0 m/s without simulating acceleration/deceleration curves or passing slowdowns when two carts pass in a narrow aisle.
-2. **Static Order Routing:** Paths are pre-calculated at order generation; workers cannot dynamically re-route to alternative aisles while in transit.
-3. **Discrete Coordinate Approximations:** Aisle locations are represented as aisle center points rather than individual rack shelves, bin slots, or pick faces.
-4. **Synchronous Telemetry Simulation:** Sensor availability is controlled via programmatic parameters rather than an asynchronous distributed network broker.
-
----
-
-## 10. Pending Work
-For Review 2 (target 70% completion) and Review 3 (final prototype):
-- **Dynamic In-Transit Re-Routing:** Implementing graph-based real-time re-routing (Dijkstra / A*) to divert workers away from downstream aisles that become congested while they are picking upstream.
-- **Intra-Aisle Passing Slowdowns:** Modeling microscopic speed reductions as a function of instantaneous aisle headcount.
-- **Telemetry Message Broker:** Simulating IoT sensor data via an MQTT / Kafka pub-sub pipeline.
-- **Cyber-Security Threat Modeling:** Simulating adversarial sensor spoofing attacks (e.g. false data injection reporting fake zero congestion) and developing cryptographic telemetry verification.
-- **Interactive Floor Dashboard:** Streamlit or Web-based real-time 2D animated warehouse map.
-
----
-
-## 11. Next Steps
-1. **Milestone 2.1 (Weeks 1–3):** Implement graph-based dynamic routing and A* path re-calculation.
-2. **Milestone 2.2 (Weeks 4–6):** Develop microscopic intra-aisle walking delay functions based on crowd density.
-3. **Milestone 2.3 (Weeks 7–8):** Integrate IoT messaging simulation and cyber-security threat attack vectors.
-4. **Milestone 3.1 (Weeks 9–11):** Build the interactive graphical dashboard and conduct full parametric validation.
-5. **Milestone 3.2 (Weeks 12):** Final capstone report, code freeze, and demonstration.
-
----
-
-## 12. Review 1 Completion Status
-**Statement:**
-> "Review 1 prototype approximately 35% complete."
-
-### Rationale:
-The Review 1 milestone required establishing the foundational simulation architecture, synthetic data pipelines, mathematical congestion logic, wave-release controller mechanics, multi-scenario handling, automated testing, and baseline vs. controlled comparative analytics. 
-
-All 18 Review 1 requirements are 100% implemented, verified with automated tests, backed by actual programmatically generated data, and fully documented. Advanced features (dynamic mid-route re-routing, multi-agent path finding, cyber-security threat injection, and interactive UI) represent the remaining 65% scoped across Reviews 2 and 3.
+## 8. Review 1 Evaluation Conclusion
+The prototype has achieved **~40–42% overall project maturity**. All foundational modules required for Review 1 are functional, verified with 23 automated tests, and reinforced by multi-load scenario benchmarks, dedicated hotspot analyses, and multi-seed statistical evaluations. Substantial future engineering remains for Reviews 2 and 3.

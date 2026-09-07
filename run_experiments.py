@@ -1,8 +1,9 @@
 """
 run_experiments.py
-Master execution script for Aisle Congestion Simulator and Wave-Release Controller.
-Generates synthetic data, executes all 3 scenarios, performs sensitivity analysis,
-saves CSV reports, and generates all 10 analytical plots into the results/ folder.
+Master execution pipeline for Aisle Congestion Simulator and Wave-Release Controller.
+Generates multi-load datasets (Low, Normal, Peak, Extreme), executes baseline vs controlled runs,
+runs hotspot analytics, multi-seed statistical validation (5 seeds), and threshold sensitivity sweeps.
+Exports consolidated CSV reports and 10 publication-quality analytical figures to results/.
 """
 
 import os
@@ -10,258 +11,265 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")  # Headless execution
+matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt
 
 # Ensure local package import
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.data_generator import generate_warehouse_dataset, DEFAULT_AISLES
+from src.metrics import compute_hotspot_analysis
 from src.scenarios import (
+    run_low_load_scenario,
     run_normal_operation_scenario,
     run_peak_congestion_scenario,
+    run_extreme_load_scenario,
     run_sensor_failure_scenario,
-    run_sensitivity_analysis
+    run_multi_load_experiments,
+    run_sensitivity_analysis,
+    run_multirun_validation
 )
 
 
 def main():
     print("================================================================================")
-    print("   AISLE CONGESTION SIMULATOR & WAVE-RELEASE CONTROLLER (REVIEW 1 PROTOTYPE)   ")
+    print(" AISLE CONGESTION SIMULATOR & WAVE-RELEASE CONTROLLER (MATURITY: ~40-42%)       ")
     print("================================================================================")
 
-    # 1. Directories Setup
     os.makedirs("data", exist_ok=True)
     os.makedirs("results", exist_ok=True)
 
-    # 2. Generate and Save Baseline Simulation Dataset
-    print("\n[Step 1/6] Generating initial synthetic warehouse dataset (120 workers, 350 orders)...")
-    dataset_df = generate_warehouse_dataset(
-        num_workers=120,
-        num_orders=350,
-        seed=42,
-        scenario_name="Normal Operation"
-    )
-    data_path = os.path.join("data", "warehouse_simulation_data.csv")
-    dataset_df.to_csv(data_path, index=False)
-    print(f" -> Saved synthetic dataset to {data_path} ({len(dataset_df)} pick item records)")
+    # 1. Generate & Save Master Dataset
+    print("\n[Step 1/7] Generating synthetic warehouse dataset (120 workers, 350 orders)...")
+    master_df = generate_warehouse_dataset(num_workers=120, num_orders=350, seed=42)
+    master_path = os.path.join("data", "warehouse_simulation_data.csv")
+    master_df.to_csv(master_path, index=False)
+    print(f" -> Saved master dataset to {master_path} ({len(master_df)} pick item records)")
 
-    # 3. Scenario A: Normal Operation
-    print("\n[Step 2/6] Executing Scenario A: Normal Operation...")
-    res_normal = run_normal_operation_scenario(seed=42)
-    m_norm = res_normal["metrics"]
-    print(f" -> Normal Operation Metrics:")
-    print(f"    - Avg Congestion: {m_norm['avg_congestion_pct']}% | Max Congestion: {m_norm['max_congestion_pct']}%")
-    print(f"    - Throughput: {m_norm['throughput_orders_per_hr']} orders/hr")
-    print(f"    - Avg Waiting Time: {m_norm['avg_waiting_time_sec']}s | Critical Events: {m_norm['critical_events_count']}")
+    # 2. Multi-Load Scenario Experiments (Low, Normal, Peak, Extreme)
+    print("\n[Step 2/7] Executing Multi-Load Scenarios (Low, Normal, Peak, Extreme)...")
+    multi_load_df = run_multi_load_experiments(seed=42)
+    multi_path = os.path.join("results", "multi_scenario_comparison.csv")
+    multi_load_df.to_csv(multi_path, index=False)
+    print(" -> Multi-Load Comparison Summary:")
+    print(multi_load_df[["Scenario", "Mode", "Throughput_ord_hr", "Avg_Waiting_Sec", "Critical_Events", "Total_Cost_USD"]].to_string(index=False))
+    print(f" -> Saved multi-load comparison to {multi_path}")
 
-    # 4. Scenario B: Peak Congestion (Baseline vs Controlled)
-    print("\n[Step 3/6] Executing Scenario B: Peak Congestion (Baseline vs Controlled)...")
+    # 3. Peak Congestion Scenario & Hotspot Analysis
+    print("\n[Step 3/7] Executing Peak Congestion Scenario & Dedicated Hotspot Analysis...")
     res_peak = run_peak_congestion_scenario(seed=42, safe_threshold=75.0)
-    comparison_df = res_peak["comparison_table"]
+    comp_df = res_peak["comparison_table"]
     comp_path = os.path.join("results", "baseline_vs_controlled.csv")
-    comparison_df.to_csv(comp_path, index=False)
-    print(f" -> Comparative Performance Results:")
-    print(comparison_df.to_string(index=False))
-    print(f" -> Saved comparative results to {comp_path}")
+    comp_df.to_csv(comp_path, index=False)
+    print(f" -> Saved Baseline vs Controlled comparison to {comp_path}")
 
-    # 5. Scenario C: Sensor / Network Failure
-    print("\n[Step 4/6] Executing Scenario C: Sensor Failure (Manual Fallback Mode)...")
-    res_failure = run_sensor_failure_scenario(seed=42, fallback_congestion=65.0)
-    m_fail = res_failure["metrics"]
-    print(f" -> System Status: {res_failure['system_status']} | Mode: {res_failure['mode']}")
-    print(f"    - Simulation completed successfully with zero unhandled exceptions.")
-    print(f"    - Handled {len(res_failure['controller_logs'])} wave controller dispatch decisions in fallback mode.")
+    hotspot_df = res_peak["hotspot_table"]
+    hotspot_path = os.path.join("results", "hotspot_analysis.csv")
+    hotspot_df.to_csv(hotspot_path, index=False)
+    print("\n -> Dedicated Hotspot Analysis (Top Congested Aisles):")
+    print(hotspot_df[["Aisle", "Zone", "Capacity", "Average_Congestion_Pct", "Max_Congestion_Pct", "Critical_Events_Count"]].head(5).to_string(index=False))
+    print(f" -> Saved hotspot analysis to {hotspot_path}")
 
-    # 6. Sensitivity Analysis
-    print("\n[Step 5/6] Executing Safe Threshold Sensitivity Analysis [60% to 90%]...")
+    # 4. Sensor Failure & Fallback Mode
+    print("\n[Step 4/7] Executing Sensor / Network Failure Scenario (Manual Fallback)...")
+    res_fail = run_sensor_failure_scenario(seed=42, fallback_congestion=65.0)
+    print(f" -> Status: {res_fail['system_status']} | Mode: {res_fail['mode']}")
+    print(f" -> Handled {len(res_fail['controller_logs'])} dispatches safely with conservative fallback rules.")
+
+    # 5. Safe Threshold Sensitivity Sweep
+    print("\n[Step 5/7] Executing Threshold Sensitivity Sweep [60% - 90%]...")
     sens_df = run_sensitivity_analysis(thresholds=[60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0], seed=42)
     sens_path = os.path.join("results", "sensitivity_analysis.csv")
     sens_df.to_csv(sens_path, index=False)
-    print(sens_df.to_string(index=False))
-    print(f" -> Saved sensitivity analysis data to {sens_path}")
+    print(sens_df[["safe_threshold_pct", "allow_decisions", "delay_decisions", "block_decisions", "avg_waiting_time_sec", "critical_events_count"]].to_string(index=False))
+    print(f" -> Saved sensitivity analysis to {sens_path}")
 
-    # 7. Generate Visualizations
-    print("\n[Step 6/6] Generating analytical visualization plots...")
-    generate_all_plots(res_peak, sens_df)
-    print(" -> All figures saved successfully to results/")
+    # 6. Multi-Seed Statistical Validation (5 Seeds)
+    print("\n[Step 6/7] Executing Multi-Run Statistical Validation across 5 seeds...")
+    seeds = [42, 101, 202, 303, 404]
+    runs_df, multirun_summary_df = run_multirun_validation(seeds=seeds, safe_threshold=75.0)
+    multirun_path = os.path.join("results", "multirun_validation.csv")
+    multirun_summary_df.to_csv(multirun_path, index=False)
+    print(" -> Multi-Seed Statistical Summary (Mean ± Std):")
+    print(multirun_summary_df.to_string(index=False))
+    print(f" -> Saved multi-run validation to {multirun_path}")
+
+    # 7. Generate All 10 Analytical Visualizations
+    print("\n[Step 7/7] Generating all 10 analytical visualization figures in results/...")
+    generate_all_plots(multi_load_df, res_peak, hotspot_df, sens_df, runs_df, multirun_summary_df)
+    print(" -> All 10 analytical plots successfully created.")
 
     print("\n================================================================================")
-    print("                        SIMULATION EXECUTION COMPLETED                          ")
+    print("                PROTOTYPE EXPERIMENTS COMPLETED SUCCESSFULLY                    ")
     print("================================================================================")
 
 
-def generate_all_plots(res_peak: dict, sens_df: pd.DataFrame):
-    """Generates the 10 required figures and saves them in results/."""
-    base_ts = res_peak["baseline"]["timeseries"]
-    ctrl_ts = res_peak["controlled"]["timeseries"]
+def generate_all_plots(multi_load_df, res_peak, hotspot_df, sens_df, runs_df, multirun_summary_df):
+    """Renders 10 purposeful analytical plots using Matplotlib."""
+
+    # 1. Congestion by Scenario
+    plt.figure(figsize=(9, 5))
+    scenarios = multi_load_df["Scenario"].tolist()
+    max_congs = multi_load_df["Max_Congestion_Pct"].tolist()
+    colors = ["#5bc0de", "#337ab7", "#f0ad4e", "#5cb85c", "#d9534f", "#993333"]
+    bars = plt.bar(scenarios, max_congs, color=colors[:len(scenarios)], width=0.55)
+    plt.axhline(100.0, color="red", linestyle="--", label="Critical Saturation Limit (100%)")
+    plt.ylabel("Maximum Aisle Congestion (%)")
+    plt.title("Figure 1: Maximum Congestion by Operating Load Scenario")
+    plt.xticks(rotation=20, ha="right")
+    plt.legend()
+    for b in bars:
+        y = b.get_height()
+        plt.text(b.get_x() + b.get_width()/2.0, y + 3, f"{y:.1f}%", ha="center", va="bottom", fontweight="bold", fontsize=9)
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.savefig("results/fig1_congestion_by_scenario.png", dpi=300)
+    plt.close()
+
+    # 2. Critical Events by Scenario
+    plt.figure(figsize=(9, 5))
+    crit_events = multi_load_df["Critical_Events"].tolist()
+    bars = plt.bar(scenarios, crit_events, color=colors[:len(scenarios)], width=0.55)
+    plt.ylabel("Critical Congestion Events Count")
+    plt.title("Figure 2: Critical Congestion Bottleneck Events by Scenario")
+    plt.xticks(rotation=20, ha="right")
+    for b in bars:
+        y = b.get_height()
+        plt.text(b.get_x() + b.get_width()/2.0, y + 2, f"{int(y)}", ha="center", va="bottom", fontweight="bold")
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.savefig("results/fig2_critical_events_by_scenario.png", dpi=300)
+    plt.close()
+
+    # 3. Throughput Comparison
+    plt.figure(figsize=(9, 5))
+    throughputs = multi_load_df["Throughput_ord_hr"].tolist()
+    bars = plt.bar(scenarios, throughputs, color=colors[:len(scenarios)], width=0.55)
+    plt.ylabel("Throughput (orders / hour)")
+    plt.title("Figure 3: Warehouse Order Fulfillment Throughput across Scenarios")
+    plt.xticks(rotation=20, ha="right")
+    for b in bars:
+        y = b.get_height()
+        plt.text(b.get_x() + b.get_width()/2.0, y + 2, f"{y:.1f}", ha="center", va="bottom", fontweight="bold")
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.savefig("results/fig3_throughput_comparison.png", dpi=300)
+    plt.close()
+
+    # 4. Waiting-Time Comparison
+    plt.figure(figsize=(9, 5))
+    waits = multi_load_df["Avg_Waiting_Sec"].tolist()
+    bars = plt.bar(scenarios, waits, color=colors[:len(scenarios)], width=0.55)
+    plt.ylabel("Average Dispatch Waiting Time (seconds)")
+    plt.title("Figure 4: Average Worker Staging Delay Across Operating Scenarios")
+    plt.xticks(rotation=20, ha="right")
+    for b in bars:
+        y = b.get_height()
+        plt.text(b.get_x() + b.get_width()/2.0, y + 0.3, f"{y:.2f}s", ha="center", va="bottom", fontweight="bold")
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.savefig("results/fig4_waiting_time_comparison.png", dpi=300)
+    plt.close()
+
+    # 5. Baseline vs Controlled (Key Metrics in Peak)
     base_m = res_peak["baseline"]["metrics"]
     ctrl_m = res_peak["controlled"]["metrics"]
-
-    aisle_names = list(DEFAULT_AISLES.keys())
-
-    # 1. Congestion by Aisle (Mean & Max during Peak)
-    plt.figure(figsize=(10, 5))
-    base_means = [base_ts[f"{a}_congestion"].mean() for a in aisle_names]
-    ctrl_means = [ctrl_ts[f"{a}_congestion"].mean() for a in aisle_names]
-    x = np.arange(len(aisle_names))
+    labels = ["Critical Events", "Avg Wait (s)", "Throughput (ord/hr)", "Cost ($/10)"]
+    base_vals = [base_m["critical_events_count"], base_m["avg_waiting_time_sec"], base_m["throughput_orders_per_hr"], base_m["total_estimated_cost_usd"]/10.0]
+    ctrl_vals = [ctrl_m["critical_events_count"], ctrl_m["avg_waiting_time_sec"], ctrl_m["throughput_orders_per_hr"], ctrl_m["total_estimated_cost_usd"]/10.0]
+    x = np.arange(len(labels))
     width = 0.35
-    plt.bar(x - width/2, base_means, width, label="Baseline (Unregulated)", color="#d9534f")
-    plt.bar(x + width/2, ctrl_means, width, label="Controlled (Wave-Release)", color="#5cb85c")
-    plt.axhline(75.0, color="#f0ad4e", linestyle="--", label="Safe Threshold (75%)")
-    plt.axhline(100.0, color="#d9534f", linestyle=":", label="Critical Threshold (100%)")
-    plt.xlabel("Warehouse Aisle")
-    plt.ylabel("Mean Congestion (%)")
-    plt.title("Figure 1: Mean Congestion Across Warehouse Aisles (Peak Scenario)")
-    plt.xticks(x, aisle_names)
+    plt.figure(figsize=(9, 5))
+    plt.bar(x - width/2, base_vals, width, label="Baseline (Unregulated)", color="#d9534f")
+    plt.bar(x + width/2, ctrl_vals, width, label="Controlled (Wave-Release)", color="#5cb85c")
+    plt.xticks(x, labels)
+    plt.ylabel("Metric Values (Normalized)")
+    plt.title("Figure 5: Baseline vs. Controlled Performance Comparison (Peak Scenario)")
     plt.legend()
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
     plt.tight_layout()
-    plt.savefig("results/fig1_congestion_by_aisle.png", dpi=300)
+    plt.savefig("results/fig5_baseline_vs_controlled.png", dpi=300)
     plt.close()
 
-    # 2. Congestion Level Distribution (Time in each level for hotspot A03)
-    plt.figure(figsize=(8, 5))
-    categories = ["LOW (<50%)", "MEDIUM (50-75%)", "HIGH (75-100%)", "CRITICAL (>=100%)"]
-    def get_distribution(ts_series):
-        low = (ts_series < 50.0).mean() * 100
-        med = ((ts_series >= 50.0) & (ts_series < 75.0)).mean() * 100
-        high = ((ts_series >= 75.0) & (ts_series < 100.0)).mean() * 100
-        crit = (ts_series >= 100.0).mean() * 100
-        return [low, med, high, crit]
-
-    base_dist = get_distribution(base_ts["A03_congestion"])
-    ctrl_dist = get_distribution(ctrl_ts["A03_congestion"])
-    x = np.arange(len(categories))
-    plt.bar(x - width/2, base_dist, width, label="Baseline", color="#d9534f")
-    plt.bar(x + width/2, ctrl_dist, width, label="Controlled", color="#5cb85c")
-    plt.xlabel("Congestion Classification Level")
-    plt.ylabel("Percentage of Operational Time (%)")
-    plt.title("Figure 2: Congestion Level Distribution for Hotspot Aisle A03")
-    plt.xticks(x, categories, rotation=15)
+    # 6. Hotspot Aisle Analysis
+    top_aisles = hotspot_df.head(6)
+    plt.figure(figsize=(9, 5))
+    x = np.arange(len(top_aisles))
+    plt.bar(x - width/2, top_aisles["Average_Congestion_Pct"], width, label="Mean Congestion (%)", color="#337ab7")
+    plt.bar(x + width/2, top_aisles["Max_Congestion_Pct"], width, label="Max Congestion (%)", color="#d9534f")
+    plt.axhline(100.0, color="red", linestyle="--", label="Critical 100%")
+    plt.xticks(x, [f"{r['Aisle']} (Cap:{r['Capacity']})" for _, r in top_aisles.iterrows()])
+    plt.ylabel("Congestion Percentage (%)")
+    plt.title("Figure 6: Dedicated Hotspot Analysis - Top Congested Aisles")
     plt.legend()
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
     plt.tight_layout()
-    plt.savefig("results/fig2_congestion_distribution_a03.png", dpi=300)
+    plt.savefig("results/fig6_hotspot_aisle_analysis.png", dpi=300)
     plt.close()
 
-    # 3. Baseline vs Controlled Waiting Time
-    plt.figure(figsize=(6, 5))
-    bars = plt.bar(["Baseline", "Controlled"], [base_m["avg_waiting_time_sec"], ctrl_m["avg_waiting_time_sec"]],
-                   color=["#337ab7", "#5cb85c"], width=0.5)
-    plt.ylabel("Average Waiting Time (seconds)")
-    plt.title("Figure 3: Worker Dispatch Waiting Time Comparison")
-    for bar in bars:
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 0.5, f"{yval:.1f} s", ha="center", va="bottom", fontweight="bold")
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig("results/fig3_waiting_time_comparison.png", dpi=300)
-    plt.close()
-
-    # 4. Baseline vs Controlled Throughput
-    plt.figure(figsize=(6, 5))
-    bars = plt.bar(["Baseline", "Controlled"], [base_m["throughput_orders_per_hr"], ctrl_m["throughput_orders_per_hr"]],
-                   color=["#337ab7", "#5cb85c"], width=0.5)
-    plt.ylabel("Fulfillment Throughput (orders / hour)")
-    plt.title("Figure 4: Warehouse Throughput Comparison")
-    for bar in bars:
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 2, f"{yval:.1f}", ha="center", va="bottom", fontweight="bold")
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig("results/fig4_throughput_comparison.png", dpi=300)
-    plt.close()
-
-    # 5. Baseline vs Controlled Travel Distance
-    plt.figure(figsize=(6, 5))
-    bars = plt.bar(["Baseline", "Controlled"], [base_m["total_distance_m"], ctrl_m["total_distance_m"]],
-                   color=["#337ab7", "#5cb85c"], width=0.5)
-    plt.ylabel("Total Worker Travel Distance (meters)")
-    plt.title("Figure 5: Total Worker Travel Distance Comparison")
-    for bar in bars:
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 100, f"{yval:,.0f} m", ha="center", va="bottom", fontweight="bold")
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig("results/fig5_distance_comparison.png", dpi=300)
-    plt.close()
-
-    # 6. Baseline vs Controlled Cost Breakdown
-    plt.figure(figsize=(7, 5))
-    cost_cats = ["Labor Cost", "Travel Cost", "Delay Cost", "Total Cost"]
-    b_costs = [base_m["labor_cost_usd"], base_m["travel_cost_usd"], base_m["delay_cost_usd"], base_m["total_estimated_cost_usd"]]
-    c_costs = [ctrl_m["labor_cost_usd"], ctrl_m["travel_cost_usd"], ctrl_m["delay_cost_usd"], ctrl_m["total_estimated_cost_usd"]]
-    x = np.arange(len(cost_cats))
-    plt.bar(x - width/2, b_costs, width, label="Baseline ($)", color="#d9534f")
-    plt.bar(x + width/2, c_costs, width, label="Controlled ($)", color="#5cb85c")
-    plt.xlabel("Cost Component")
-    plt.ylabel("Estimated Cost ($ USD)")
-    plt.title("Figure 6: Operational Cost Breakdown Comparison")
-    plt.xticks(x, cost_cats)
-    plt.legend()
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig("results/fig6_cost_breakdown.png", dpi=300)
-    plt.close()
-
-    # 7. Baseline vs Controlled Carbon Emissions
-    plt.figure(figsize=(6, 5))
-    bars = plt.bar(["Baseline", "Controlled"], [base_m["estimated_emissions_kg"], ctrl_m["estimated_emissions_kg"]],
-                   color=["#337ab7", "#5cb85c"], width=0.5)
-    plt.ylabel("Estimated Emissions (kg CO2e)")
-    plt.title("Figure 7: Estimated Carbon Emissions Comparison")
-    for bar in bars:
-        yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 0.05, f"{yval:.3f} kg", ha="center", va="bottom", fontweight="bold")
-    plt.grid(axis="y", linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig("results/fig7_emissions_comparison.png", dpi=300)
-    plt.close()
-
-    # 8. Sensitivity Analysis: Safe Threshold vs Waiting Time & Critical Events
+    # 7. Threshold Sensitivity
     plt.figure(figsize=(9, 5))
     plt.plot(sens_df["safe_threshold_pct"], sens_df["avg_waiting_time_sec"], marker="o", color="#d9534f", label="Avg Waiting Time (s)", linewidth=2)
     plt.plot(sens_df["safe_threshold_pct"], sens_df["critical_events_count"], marker="s", color="#337ab7", label="Critical Events Count", linewidth=2)
     plt.xlabel("Safe Congestion Threshold (%)")
-    plt.ylabel("Value (Seconds / Event Count)")
-    plt.title("Figure 8: Sensitivity Analysis - Threshold vs Waiting Time & Critical Events")
+    plt.ylabel("Value (Seconds / Events)")
+    plt.title("Figure 7: Safe Threshold Sensitivity Analysis (Trade-off Curve)")
     plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig("results/fig8_sensitivity_waiting_and_critical.png", dpi=300)
-    plt.close()
-
-    # 9. Sensitivity Analysis: Safe Threshold vs Throughput
-    plt.figure(figsize=(8, 5))
-    plt.plot(sens_df["safe_threshold_pct"], sens_df["throughput_orders_per_hr"], marker="^", color="#5cb85c", label="Throughput (orders/hr)", linewidth=2)
-    plt.xlabel("Safe Congestion Threshold (%)")
-    plt.ylabel("Throughput (orders / hour)")
-    plt.title("Figure 9: Sensitivity Analysis - Threshold vs Warehouse Throughput")
-    plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.5)
-    plt.tight_layout()
-    plt.savefig("results/fig9_sensitivity_throughput.png", dpi=300)
-    plt.close()
-
-    # 10. Warehouse Aisle Grid Layout Map
-    plt.figure(figsize=(8, 6))
-    for aisle, info in DEFAULT_AISLES.items():
-        gx, gy = info["grid"]
-        pop = info["base_prob"]
-        # Invert gy for intuitive top-down view
-        color = "#d9534f" if pop >= 0.20 else ("#f0ad4e" if pop >= 0.08 else "#5bc0de")
-        plt.scatter(gy, -gx, s=1200, c=color, edgecolors="black", linewidths=1.5, zorder=3)
-        plt.text(gy, -gx, f"{aisle}\nCap:{info['capacity']}\nP:{pop:.2f}",
-                 ha="center", va="center", color="white", fontweight="bold", fontsize=9)
-    plt.xlim(-0.8, 3.8)
-    plt.ylim(-2.8, 0.8)
-    plt.title("Figure 10: Warehouse Aisle Grid Layout & Popularity Topology")
-    plt.xlabel("Aisle Column Index (Grid X)")
-    plt.ylabel("Aisle Row Index (Grid Y)")
     plt.grid(True, linestyle=":", alpha=0.6)
     plt.tight_layout()
-    plt.savefig("results/fig10_warehouse_grid_layout.png", dpi=300)
+    plt.savefig("results/fig7_threshold_sensitivity.png", dpi=300)
+    plt.close()
+
+    # 8. ALLOW/DELAY/BLOCK Distribution across Thresholds
+    plt.figure(figsize=(9, 5))
+    thresh_labels = [f"{t}%" for t in sens_df["safe_threshold_pct"]]
+    x = np.arange(len(thresh_labels))
+    plt.bar(x, sens_df["allow_decisions"], label="ALLOW", color="#5cb85c")
+    plt.bar(x, sens_df["delay_decisions"], bottom=sens_df["allow_decisions"], label="DELAY", color="#f0ad4e")
+    plt.bar(x, sens_df["block_decisions"], bottom=sens_df["allow_decisions"] + sens_df["delay_decisions"], label="BLOCK", color="#d9534f")
+    plt.xlabel("Safe Congestion Threshold")
+    plt.ylabel("Dispatch Decision Counts")
+    plt.title("Figure 8: Wave Controller Decision Breakdown (ALLOW vs DELAY vs BLOCK)")
+    plt.xticks(x, thresh_labels)
+    plt.legend()
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.savefig("results/fig8_controller_decisions_distribution.png", dpi=300)
+    plt.close()
+
+    # 9. Worker Load vs Congestion Time-Series (Peak Hotspot A03)
+    base_ts = res_peak["baseline"]["timeseries"]
+    ctrl_ts = res_peak["controlled"]["timeseries"]
+    plt.figure(figsize=(10, 5))
+    plt.plot(base_ts["timestamp_sec"]/60.0, base_ts["A03_congestion"], label="Baseline Congestion", color="#d9534f", alpha=0.8)
+    plt.plot(ctrl_ts["timestamp_sec"]/60.0, ctrl_ts["A03_congestion"], label="Controlled Congestion", color="#5cb85c", alpha=0.8)
+    plt.axhline(100.0, color="red", linestyle="--", label="Critical Saturation")
+    plt.xlabel("Simulation Elapsed Time (minutes)")
+    plt.ylabel("Aisle A03 Congestion (%)")
+    plt.title("Figure 9: Dynamic Congestion Profile over Time (Hotspot Aisle A03)")
+    plt.legend()
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.savefig("results/fig9_worker_load_vs_congestion.png", dpi=300)
+    plt.close()
+
+    # 10. Multi-Run Statistical Variability (5 Seeds)
+    plt.figure(figsize=(9, 5))
+    seeds_x = [f"Seed {s}" for s in runs_df["seed"]]
+    x = np.arange(len(seeds_x))
+    plt.bar(x - width/2, runs_df["base_critical_events"], width, label="Baseline Critical Events", color="#d9534f")
+    plt.bar(x + width/2, runs_df["ctrl_critical_events"], width, label="Controlled Critical Events", color="#5cb85c")
+    plt.xticks(x, seeds_x)
+    plt.ylabel("Critical Events Count")
+    mean_b = multirun_summary_df.loc[multirun_summary_df["Metric"] == "base_critical_events", "Mean"].values[0]
+    mean_c = multirun_summary_df.loc[multirun_summary_df["Metric"] == "ctrl_critical_events", "Mean"].values[0]
+    plt.axhline(mean_b, color="#d9534f", linestyle=":", label=f"Baseline Mean ({mean_b:.1f})")
+    plt.axhline(mean_c, color="#5cb85c", linestyle=":", label=f"Controlled Mean ({mean_c:.1f})")
+    plt.title("Figure 10: Multi-Seed Statistical Stability (Seeds: 42, 101, 202, 303, 404)")
+    plt.legend()
+    plt.grid(axis="y", linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.savefig("results/fig10_multirun_variability.png", dpi=300)
     plt.close()
 
 

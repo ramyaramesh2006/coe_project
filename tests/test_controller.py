@@ -1,6 +1,6 @@
 """
 test_controller.py
-Unit tests for wave-release controller decision logic and fallback mechanisms.
+Unit tests for wave-release controller decision logic, boundary conditions, and fallback mechanisms.
 """
 
 import pytest
@@ -56,6 +56,36 @@ def test_controller_critical_congestion_block():
     assert res_crit["congestion_level"] == "CRITICAL"
 
 
+def test_controller_exact_threshold_boundary():
+    """Boundary Test: Exactly at safe threshold (75.0%) -> DELAY."""
+    res = wave_release_controller(
+        congestion_percentage=75.0,
+        requested_workers=1,
+        safe_threshold=75.0
+    )
+    assert res["decision"] == "DELAY", "At exact threshold, release must be delayed"
+    assert res["released_workers"] == 0
+    assert res["delayed_workers"] == 1
+
+
+def test_controller_just_below_and_above_boundary():
+    """Boundary Test: 74.9% -> ALLOW, 75.1% -> DELAY."""
+    res_below = wave_release_controller(congestion_percentage=74.9, safe_threshold=75.0)
+    assert res_below["decision"] == "ALLOW"
+    assert res_below["released_workers"] == 1
+
+    res_above = wave_release_controller(congestion_percentage=75.1, safe_threshold=75.0)
+    assert res_above["decision"] == "DELAY"
+    assert res_above["released_workers"] == 0
+
+
+def test_controller_exact_critical_boundary():
+    """Boundary Test: Exactly at 100.0% -> BLOCK."""
+    res_crit = wave_release_controller(congestion_percentage=100.0, safe_threshold=75.0)
+    assert res_crit["decision"] == "BLOCK"
+    assert res_crit["congestion_level"] == "CRITICAL"
+
+
 def test_controller_sensor_failure_fallback():
     """Verify graceful transition to MANUAL FALLBACK mode when telemetry fails."""
     res_fail = wave_release_controller(
@@ -66,5 +96,18 @@ def test_controller_sensor_failure_fallback():
     )
     assert res_fail["system_status"] == "SENSOR FAILURE"
     assert res_fail["mode"] == "MANUAL FALLBACK"
-    assert res_fail["released_workers"] <= 1  # Paced release
+    assert res_fail["released_workers"] <= 1  # Conservative paced release
     assert "Sensor telemetry offline" in res_fail["reason"]
+
+
+def test_controller_multi_worker_request():
+    """Verify batch request handling (e.g. 4 workers requested)."""
+    # When clear (20%), all 4 should be released
+    res_allow = wave_release_controller(congestion_percentage=20.0, requested_workers=4, safe_threshold=75.0)
+    assert res_allow["released_workers"] == 4
+    assert res_allow["delayed_workers"] == 0
+
+    # When high (85%), all 4 should be delayed
+    res_delay = wave_release_controller(congestion_percentage=85.0, requested_workers=4, safe_threshold=75.0)
+    assert res_delay["released_workers"] == 0
+    assert res_delay["delayed_workers"] == 4
