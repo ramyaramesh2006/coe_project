@@ -1,0 +1,14 @@
+Metric,Baseline,Controlled,Difference,Improvement_Percentage
+Average Congestion (%),16.85,16.85,0.0,0.0
+Maximum Congestion (%),266.67,266.67,0.0,0.0
+Critical Congestion Events,138.0,132.0,-6.0,4.35
+High Congestion Events,8.0,10.0,2.0,-25.0
+Average Waiting Time (s),0.0,7.29,7.29,-100.0
+Maximum Waiting Time (s),0.0,120.0,120.0,-100.0
+Total Waiting Time (s),0.0,2550.0,2550.0,-100.0
+Delayed Orders Count,0.0,57.0,57.0,-100.0
+Throughput (orders/hr),200.83,200.83,0.0,0.0
+Total Distance (m),30210.0,30210.0,0.0,0.0
+Average Distance (m),86.31,86.31,0.0,0.0
+Total Estimated Cost ($),1039.58,1050.21,10.63,-1.02
+Estimated Emissions (kg CO2e),4.5315,4.5315,0.0,0.0
