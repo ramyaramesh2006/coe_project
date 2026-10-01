@@ -1,11 +1,14 @@
 """
-scenarios.py
+scenarios.py  (Review 2 – Enhanced)
 Multi-load experimental framework and validation engine:
 - Scenario A: Low Load
 - Scenario B: Normal Load
 - Scenario C: Peak Congestion (Baseline vs Controlled)
 - Scenario D: Extreme Load (Stress-testing saturation)
 - Scenario E: Sensor/Network Failure (Manual Fallback Mode)
+- Scenario F: Store-and-Forward (Intermittent Network Outages)    ← NEW Rev 2
+- Scenario G: Visual Similarity Impact Analysis                   ← NEW Rev 2
+- Scenario H: Dynamic Rerouting Under Congestion                  ← NEW Rev 2
 - Multi-run statistical stability across multiple random seeds (42, 101, 202, 303, 404)
 - Configurable threshold sensitivity sweeps with full ALLOW/DELAY/BLOCK accounting
 """
@@ -16,6 +19,10 @@ import numpy as np
 from src.data_generator import generate_warehouse_dataset, DEFAULT_AISLES
 from src.simulation import WarehouseSimulation
 from src.metrics import compute_simulation_metrics, generate_comparison_table, compute_hotspot_analysis
+from src.store_and_forward import NetworkStateMonitor
+from src.visual_similarity import (
+    PART_CATALOGUE, AISLE_PART_MAP, compute_expected_dwell_time, get_zone_similarity_risk
+)
 
 
 def run_low_load_scenario(seed: int = 42) -> Dict[str, Any]:
@@ -458,3 +465,273 @@ def run_multirun_validation(
 
     summary_df = pd.DataFrame(summary_rows)
     return df_runs, summary_df
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# REVIEW 2 NEW SCENARIOS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def run_store_and_forward_scenario(
+    seed: int = 42,
+    mean_outage_interval: float = 900.0,
+    mean_outage_duration: float = 180.0,
+) -> Dict[str, Any]:
+    """
+    Scenario F (Review 2): Store-and-Forward Intermittent Network Outages.
+
+    Simulates realistic IoT network dropouts during warehouse operation.
+    The store-and-forward queue buffers dispatch decisions offline and
+    replays them with real-time reconciliation when connectivity restores.
+
+    Compares:
+      - ONLINE ONLY   : Sensor always available (upper-bound performance)
+      - S&F ENABLED   : Intermittent outages with S&F queue active
+      - SENSOR FAILURE: Total blackout (lower-bound, Review 1 baseline)
+    """
+    print("\n--- Running Scenario F: Store-and-Forward Intermittent Outages ---")
+    data_df = generate_warehouse_dataset(
+        num_workers=100,
+        num_orders=300,
+        seed=seed,
+        scenario_name="Store-and-Forward",
+        peak_multiplier=2.0,
+    )
+
+    # 1. Baseline: always-online controlled simulation
+    sim_online = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=True,
+        use_visual_similarity=True,
+    )
+    orders_online = sim_online.run()
+    ts_online = sim_online.get_aisle_congestion_timeseries()
+    metrics_online = compute_simulation_metrics(orders_online, ts_online)
+
+    # 2. Store-and-Forward: intermittent outages, S&F queue active
+    monitor = NetworkStateMonitor(
+        total_sim_duration=7200.0,
+        mean_outage_interval=mean_outage_interval,
+        mean_outage_duration=mean_outage_duration,
+        seed=seed,
+    )
+    saf_path = "results/store_forward_spool.csv"
+    sim_saf = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=True,
+        use_visual_similarity=True,
+        use_store_and_forward=True,
+        network_monitor=monitor,
+        saf_spool_path=saf_path,
+    )
+    orders_saf = sim_saf.run()
+    ts_saf = sim_saf.get_aisle_congestion_timeseries()
+    metrics_saf = compute_simulation_metrics(orders_saf, ts_saf)
+    saf_summary = sim_saf.get_store_and_forward_summary()
+    outage_schedule = monitor.get_outage_schedule()
+
+    # 3. Total sensor failure (manual fallback – Review 1 baseline for comparison)
+    sim_failure = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=False,
+        fallback_congestion=65.0,
+        use_visual_similarity=True,
+    )
+    orders_failure = sim_failure.run()
+    ts_failure = sim_failure.get_aisle_congestion_timeseries()
+    metrics_failure = compute_simulation_metrics(orders_failure, ts_failure)
+
+    comparison_df = generate_comparison_table(metrics_online, metrics_saf)
+
+    return {
+        "scenario": "Store-and-Forward",
+        "outage_schedule": outage_schedule,
+        "online": {
+            "orders": orders_online,
+            "timeseries": ts_online,
+            "metrics": metrics_online,
+        },
+        "store_and_forward": {
+            "orders": orders_saf,
+            "timeseries": ts_saf,
+            "metrics": metrics_saf,
+            "saf_summary": saf_summary,
+        },
+        "total_failure": {
+            "orders": orders_failure,
+            "timeseries": ts_failure,
+            "metrics": metrics_failure,
+        },
+        "comparison_table": comparison_df,
+    }
+
+
+def run_visual_similarity_impact_scenario(seed: int = 42) -> Dict[str, Any]:
+    """
+    Scenario G (Review 2): Visual Similarity Impact Analysis.
+
+    Directly quantifies how the 'visually similar components' domain constraint
+    increases aisle dwell time and operational cost:
+      - WITHOUT visual similarity: baseline 30–60 s uniform pick times
+      - WITH visual similarity: part-category-specific verification + mispick returns
+
+    Exposes the domain-specific trade-off between accuracy (fewer mispicks)
+    and throughput (longer dwell times in high-similarity aisles).
+    """
+    print("\n--- Running Scenario G: Visual Similarity Impact Analysis ---")
+    data_df = generate_warehouse_dataset(
+        num_workers=120,
+        num_orders=350,
+        seed=seed,
+        scenario_name="Visual Similarity Impact",
+        peak_multiplier=2.8,
+    )
+
+    # 1. Without visual similarity (standard uniform pick times)
+    sim_no_vs = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=True,
+        use_visual_similarity=False,
+    )
+    orders_no_vs = sim_no_vs.run()
+    ts_no_vs = sim_no_vs.get_aisle_congestion_timeseries()
+    metrics_no_vs = compute_simulation_metrics(orders_no_vs, ts_no_vs)
+
+    # 2. With visual similarity (domain-accurate pick times)
+    sim_vs = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=True,
+        use_visual_similarity=True,
+    )
+    orders_vs = sim_vs.run()
+    ts_vs = sim_vs.get_aisle_congestion_timeseries()
+    metrics_vs = compute_simulation_metrics(orders_vs, ts_vs)
+
+    comparison_df = generate_comparison_table(metrics_no_vs, metrics_vs)
+
+    # Build per-aisle expected dwell time table
+    dwell_records = []
+    for aisle_id in DEFAULT_AISLES:
+        expected_dwell = compute_expected_dwell_time(aisle_id)
+        risk = get_zone_similarity_risk(aisle_id)
+        from src.visual_similarity import AISLE_PART_MAP, PART_CATALOGUE
+        part_key = AISLE_PART_MAP.get(aisle_id, "oil_filters")
+        part = PART_CATALOGUE[part_key]
+        dwell_records.append({
+            "Aisle": aisle_id,
+            "Zone": DEFAULT_AISLES[aisle_id]["zone"],
+            "Part_Category": part["category"],
+            "Part_Key": part_key,
+            "Similarity_Risk": risk,
+            "Base_Pick_Time_Sec": part["avg_pick_time_sec"],
+            "Verification_Overhead_Sec": round(part["verification_extra_sec"] * risk, 2),
+            "Mispick_Probability_Pct": round(part["mispick_probability"] * 100, 1),
+            "Expected_Mispick_Penalty_Sec": round(part["mispick_probability"] * 45.0, 2),
+            "Expected_Total_Dwell_Sec": expected_dwell,
+        })
+    dwell_df = pd.DataFrame(dwell_records).sort_values("Similarity_Risk", ascending=False).reset_index(drop=True)
+
+    # Mispick statistics from simulation
+    mispick_orders = orders_vs[orders_vs["mispick_count"] > 0]
+    mispick_stats = {
+        "total_mispick_events": int(orders_vs["mispick_count"].sum()),
+        "affected_orders_count": len(mispick_orders),
+        "affected_orders_pct": round(len(mispick_orders) / len(orders_vs) * 100, 1),
+        "avg_mispick_penalty_sec": round(float(mispick_orders["mispick_penalty_sec"].mean()), 2) if len(mispick_orders) > 0 else 0.0,
+        "total_mispick_penalty_sec": round(float(orders_vs["mispick_penalty_sec"].sum()), 2),
+        "total_verification_overhead_sec": round(float(orders_vs["verification_overhead_sec"].sum()), 2),
+    }
+
+    return {
+        "scenario": "Visual Similarity Impact",
+        "without_vs": {
+            "orders": orders_no_vs,
+            "timeseries": ts_no_vs,
+            "metrics": metrics_no_vs,
+        },
+        "with_vs": {
+            "orders": orders_vs,
+            "timeseries": ts_vs,
+            "metrics": metrics_vs,
+        },
+        "comparison_table": comparison_df,
+        "dwell_time_table": dwell_df,
+        "mispick_stats": mispick_stats,
+    }
+
+
+def run_dynamic_rerouting_scenario(seed: int = 42) -> Dict[str, Any]:
+    """
+    Scenario H (Review 2): Dynamic A*-Based Rerouting Under Congestion.
+
+    Compares:
+      - NO REROUTING  : Workers follow pre-planned paths even when downstream aisles
+                        are critically congested.
+      - WITH REROUTING: Workers are dynamically redirected around congested aisles
+                        using nearest-neighbour A* heuristic.
+
+    Demonstrates the throughput-vs-distance trade-off introduced by rerouting.
+    """
+    print("\n--- Running Scenario H: Dynamic Rerouting Under Congestion ---")
+    data_df = generate_warehouse_dataset(
+        num_workers=120,
+        num_orders=350,
+        seed=seed,
+        scenario_name="Dynamic Rerouting",
+        peak_multiplier=2.8,
+    )
+
+    # 1. No rerouting (fixed paths)
+    sim_no_rr = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=True,
+        use_visual_similarity=True,
+        enable_dynamic_rerouting=False,
+    )
+    orders_no_rr = sim_no_rr.run()
+    ts_no_rr = sim_no_rr.get_aisle_congestion_timeseries()
+    metrics_no_rr = compute_simulation_metrics(orders_no_rr, ts_no_rr)
+
+    # 2. With dynamic rerouting (A*-heuristic path reordering)
+    sim_rr = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=True,
+        use_visual_similarity=True,
+        enable_dynamic_rerouting=True,
+        reroute_threshold_pct=90.0,
+    )
+    orders_rr = sim_rr.run()
+    ts_rr = sim_rr.get_aisle_congestion_timeseries()
+    metrics_rr = compute_simulation_metrics(orders_rr, ts_rr)
+
+    reroute_events_df = pd.DataFrame(sim_rr.reroute_events) if sim_rr.reroute_events else pd.DataFrame()
+    comparison_df = generate_comparison_table(metrics_no_rr, metrics_rr)
+
+    return {
+        "scenario": "Dynamic Rerouting",
+        "no_rerouting": {
+            "orders": orders_no_rr,
+            "timeseries": ts_no_rr,
+            "metrics": metrics_no_rr,
+        },
+        "with_rerouting": {
+            "orders": orders_rr,
+            "timeseries": ts_rr,
+            "metrics": metrics_rr,
+            "reroute_events": reroute_events_df,
+        },
+        "comparison_table": comparison_df,
+    }

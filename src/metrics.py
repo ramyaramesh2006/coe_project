@@ -1,8 +1,14 @@
 """
-metrics.py
+metrics.py  (Review 2 – Enhanced)
 Warehouse Performance Evaluation and Comparative Analysis Engine.
 Calculates congestion, waiting time, throughput, travel distance, operational costs,
 carbon emissions, advanced congestion duration, worker exposure, and hotspot rankings.
+
+Review 2 additions:
+  * Mispick count and verification overhead KPIs.
+  * Reroute event count.
+  * Visual-similarity domain metrics in comparison table.
+  * Mispick cost factored into total operational cost.
 """
 
 import pandas as pd
@@ -11,14 +17,15 @@ from typing import Dict, Any, Tuple, Optional, List
 from src.data_generator import DEFAULT_AISLES
 
 
-# Configurable Cost Model Assumptions (Review 1 Prototype)
+# Configurable Cost Model Assumptions
 DEFAULT_COST_CONFIG = {
     "worker_cost_per_minute": 0.35,      # $21.00 / hr standard warehouse picker wage
     "cost_per_meter": 0.02,              # Wear/tear & cart equipment maintenance per meter
     "delay_cost_per_minute": 0.25,       # Idle worker & order fulfillment SLA penalty per minute
+    "mispick_cost_per_event": 3.50,      # Re-pick labour + SLA penalty per mispick event (Rev 2)
 }
 
-# Configurable Emission Model Assumptions (Review 1 Prototype)
+# Configurable Emission Model Assumptions
 DEFAULT_EMISSION_CONFIG = {
     "emission_factor_per_meter": 0.00015  # kg CO2e per meter (battery-electric cart energy share)
 }
@@ -109,7 +116,15 @@ def compute_simulation_metrics(
     labor_cost = total_active_minutes * cost_config["worker_cost_per_minute"]
     travel_cost = total_distance_m * cost_config["cost_per_meter"]
     delay_cost = total_waiting_minutes * cost_config["delay_cost_per_minute"]
-    total_cost = labor_cost + travel_cost + delay_cost
+
+    # Review 2: mispick cost
+    total_mispick_count = int(orders_result_df["mispick_count"].sum()) if "mispick_count" in orders_result_df.columns else 0
+    total_verification_sec = float(orders_result_df["verification_overhead_sec"].sum()) if "verification_overhead_sec" in orders_result_df.columns else 0.0
+    total_mispick_penalty_sec = float(orders_result_df["mispick_penalty_sec"].sum()) if "mispick_penalty_sec" in orders_result_df.columns else 0.0
+    rerouted_orders_count = int(orders_result_df["rerouted"].sum()) if "rerouted" in orders_result_df.columns else 0
+
+    mispick_cost = total_mispick_count * cost_config.get("mispick_cost_per_event", 3.50)
+    total_cost = labor_cost + travel_cost + delay_cost + mispick_cost
 
     # Carbon Emissions Estimation (kg CO2e)
     estimated_emissions_kg = total_distance_m * emission_config["emission_factor_per_meter"]
@@ -133,12 +148,20 @@ def compute_simulation_metrics(
         "delayed_orders_count": delayed_orders_count,
         "total_distance_m": round(total_distance_m, 2),
         "avg_distance_m": round(avg_distance_m, 2),
+        # Review 2 additions
+        "total_mispick_count": total_mispick_count,
+        "total_verification_overhead_sec": round(total_verification_sec, 2),
+        "total_mispick_penalty_sec": round(total_mispick_penalty_sec, 2),
+        "rerouted_orders_count": rerouted_orders_count,
+        # Cost breakdown
         "labor_cost_usd": round(labor_cost, 2),
         "travel_cost_usd": round(travel_cost, 2),
         "delay_cost_usd": round(delay_cost, 2),
+        "mispick_cost_usd": round(mispick_cost, 2),
         "total_estimated_cost_usd": round(total_cost, 2),
-        "estimated_emissions_kg": round(estimated_emissions_kg, 4)
+        "estimated_emissions_kg": round(estimated_emissions_kg, 4),
     }
+
 
 
 def compute_hotspot_analysis(
@@ -207,9 +230,16 @@ def generate_comparison_table(
         ("Throughput (orders/hr)", "throughput_orders_per_hr", "higher"),
         ("Total Distance (m)", "total_distance_m", "lower"),
         ("Average Distance (m)", "avg_distance_m", "lower"),
+        # Review 2: visual-similarity domain KPIs
+        ("Total Mispick Count", "total_mispick_count", "lower"),
+        ("Total Verification Overhead (s)", "total_verification_overhead_sec", "lower"),
+        ("Total Mispick Penalty (s)", "total_mispick_penalty_sec", "lower"),
+        ("Rerouted Orders Count", "rerouted_orders_count", "lower"),
+        ("Mispick Cost ($)", "mispick_cost_usd", "lower"),
         ("Total Estimated Cost ($)", "total_estimated_cost_usd", "lower"),
         ("Estimated Emissions (kg CO2e)", "estimated_emissions_kg", "lower"),
     ]
+
 
     rows = []
     for label, key, preference in kpis:
