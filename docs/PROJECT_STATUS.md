@@ -24,9 +24,9 @@ Review 2 feedback was accepted with full marks. Its three required improvements 
 
 ## 3. Test inventory and validation status
 
-Source inspection counts **62 existing test functions** (8 congestion + 8 controller + 7 simulation + 22 visual-similarity + 17 error-boundary) and **13 Review 3 additions** (2 movement trace + 8 telemetry security + 3 integration), for **75 expected test functions**.
+Source inspection counts **62 existing test functions** (8 congestion + 8 controller + 7 simulation + 22 visual-similarity + 17 error-boundary) and **14 Review 3 additions** (2 movement trace + 8 telemetry security + 3 integration), for **76 test functions**.
 
-**Test result: PASS.** GitHub Actions run #31 executed the full suite on Python 3.11: **75 passed in 3.19 seconds**. The workflow has since been extended to execute `run_review3_experiments.py`, upload its generated artifacts, and smoke-test dashboard startup. Those additional checks await the next CI run.
+**Test result: PASS.** GitHub Actions run #54 executed the full suite on Python 3.11: **76 passed in 1.81 seconds**. The same run successfully executed `run_review3_experiments.py`, uploaded the generated artifacts, and smoke-tested dashboard startup (HTTP 200).
 
 ## 4. Reproducible validation commands
 
