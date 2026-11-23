@@ -1,8 +1,8 @@
 # Testing Guide — Aisle Congestion Simulator & Wave-Release Controller
 
 **Document:** Test Strategy, Coverage Rationale, and Execution Guide
-**Review Stage:** Review 3 (100% Prototype Maturity)
-**Total Tests:** 58 passing (100% pass rate)
+**Review Stage:** Review 3
+**Total Tests:** 62 test cases (latest repository commit records 62 passing)
 
 ---
 
@@ -23,8 +23,8 @@ Every test in this suite follows **three rules**:
 | `test_controller.py` | 8 | `src/controller.py` | Unit |
 | `test_simulation.py` | 7 | `src/simulation.py` | Integration |
 | `test_visual_similarity.py` | 22 | `src/visual_similarity.py`, `src/store_and_forward.py` | Unit + Integration |
-| `test_error_boundaries.py` | 13 | All modules | Error boundary |
-| **Total** | **58** | | |
+| `test_error_boundaries.py` | 17 | All modules | Error boundary |
+| **Total** | **62** | | |
 
 ---
 
