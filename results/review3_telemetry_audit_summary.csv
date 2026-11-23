@@ -1,0 +1,17 @@
+metric,value
+ci_workflow_run,45189372797
+ci_run_number,54
+expected_test_count,76
+tests_passed,76
+test_duration_seconds,1.81
+experiment_script,success
+dashboard_health_endpoint,HTTP 200
+requested_orders_in_tamper_scenario,300
+tampered_order_ids,30
+telemetry_packets_checked,1450
+telemetry_packets_accepted,1394
+telemetry_packets_rejected,56
+invalid_signature_rejections,56
+store_and_forward_events_queued,56
+store_and_forward_events_replayed,56
+unique_orders_with_rejected_packets,30
