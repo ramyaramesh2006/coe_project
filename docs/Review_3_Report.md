@@ -281,7 +281,7 @@ For any numeric target with a specified value, absolute error is `|measured − 
 
 A source-level count of test functions gives:
 
-| Test file | Existing / new tests |
+| Test file | Test functions |
 |:---|---:|
 | `test_congestion.py` | 8 |
 | `test_controller.py` | 8 |
@@ -292,8 +292,9 @@ A source-level count of test functions gives:
 | `test_movement_trace.py` | 2 |
 | `test_telemetry_security.py` | 8 |
 | `test_telemetry_integration.py` | 3 |
-| **Review 3 additions** | **13** |
-| **Expected source total** | **75** |
+| `test_projected_occupancy_gate.py` | 1 |
+| **Review 3 additions** | **14** |
+| **Total** | **76** |
 
 **Validation result:** GitHub Actions run #54 reported **76 passed in 1.81 seconds** on Python 3.11. In the same run, the Review 3 experiment script completed, the CSV/JSON evidence artifact uploaded successfully, and the Streamlit dashboard health endpoint returned HTTP 200.
 
@@ -342,13 +343,13 @@ Generated Review 3 CSV and JSON evidence is written under `results/`. Review tho
 
 ## 11. Remaining work before final submission
 
-1. Keep the 75-test suite passing; GitHub Actions run #31 already reports 75 passed in 3.19 seconds. Review the subsequent expanded CI run for regressions.
-2. Run `run_review3_experiments.py`; use generated CSVs to populate the measured-result table and error analysis.
-3. Check whether throughput increases and measured congestion stays within the agreed safe limit. If either target is missed, report it and explain the trade-off rather than changing the numbers.
-4. Launch the dashboard and capture genuine screenshots.
+1. Keep the 76-test suite passing; GitHub Actions run #54 reports 76 passed in 1.81 seconds.
+2. Retain and review the generated experiment CSV/JSON evidence from run #54; the measured results are now included in this report.
+3. Improve global event scheduling/reservation because measured maximum congestion still exceeds 75%, and controlled throughput falls in peak/extreme runs.
+4. Manually inspect the dashboard, capture genuine screenshots, and complete usability feedback. CI confirms startup only.
 5. Conduct the short stakeholder walkthrough and complete the feedback record.
 6. Review residual security and modelling risks; do not describe the simulation as a live or production warehouse deployment.
-7. Update the report with actual test and experiment evidence, then request review and merge the draft pull request only after approval.
+7. Update the report after the remaining validations, then request review and merge the draft pull request only after approval.
 
 ## 12. Conclusion
 
