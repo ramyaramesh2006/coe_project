@@ -223,7 +223,7 @@ These are values recorded in the Review 2 report, not newly measured Review 3 re
 
 ### 7.2 Review 3 measured results
 
-The expanded GitHub Actions workflow executed the Review 3 experiment runner with seed 42 and five-seed validation (42, 101, 202, 303, 404). The generated CSV files were uploaded as the `review3-experiment-evidence` artifact in [GitHub Actions run #54](https://github.com/ramyaramesh2006/coe_project/actions/runs/45189372797).
+The expanded GitHub Actions workflow executed the Review 3 experiment runner with seed 42 and five-seed validation (42, 101, 202, 303, 404). The scenario summary, sensitivity, multi-seed run, and multi-seed summary CSVs are committed under `results/`. The full telemetry audit and controller logs were uploaded as the `review3-experiment-evidence` artifact in [GitHub Actions run #54](https://github.com/ramyaramesh2006/coe_project/actions/runs/45189372797).
 
 | Scenario | Mode | Completed / requested | Throughput (orders/hr) | Avg wait (s) | Max congestion (%) | Critical events | Cost ($) | CO₂e (kg) |
 |:---|:---|---:|---:|---:|---:|---:|---:|---:|
