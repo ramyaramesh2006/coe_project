@@ -267,7 +267,9 @@ The Review 2 source suite contains 62 test functions (8 congestion, 8 controller
 | [`docs/Review_2_Report.md`](docs/Review_2_Report.md) | Review 2 improvements, new scenarios, updated results |
 | [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md) | 14-entry formal risk register (L×I matrix, mitigations) |
 | [`docs/STAKEHOLDER_ASSUMPTIONS.md`](docs/STAKEHOLDER_ASSUMPTIONS.md) | 22 assumptions, stakeholder map, decision-change analysis |
-| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | Quick-reference prototype status |\n| [`docs/STAKEHOLDER_VALIDATION.md`](docs/STAKEHOLDER_VALIDATION.md) | Walkthrough and blank feedback evidence template |
+| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | Quick-reference prototype status |
+| [`docs/Review_3_Report.md`](docs/Review_3_Report.md) | Review 3 implementation, evidence, and remaining validation |
+| [`docs/STAKEHOLDER_VALIDATION.md`](docs/STAKEHOLDER_VALIDATION.md) | Walkthrough and blank feedback evidence template |
 
 ---
 
