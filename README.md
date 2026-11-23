@@ -2,17 +2,17 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests: 45 Passed](https://img.shields.io/badge/tests-45%20passed-brightgreen.svg)]()
-[![Stage: Review 2 / 68–72% Prototype](https://img.shields.io/badge/Maturity-68--72%25%20Prototype-orange.svg)]()
+[![Tests: 62 Cases](https://img.shields.io/badge/tests-62%20cases-brightgreen.svg)]()
+[![Stage: Review 3](https://img.shields.io/badge/stage-Review%203-blue.svg)]()
 
 A discrete-event simulation system and intelligent wave-release dispatching controller developed to analyze, mitigate, and control physical aisle congestion in **automotive parts distribution warehouses containing visually similar components**.
 
 ---
 
-> **Review 2 Update:**  
-> Three Review 1 mandated improvements fully implemented:  
-> (1) Visual-similarity-aware pick model · (2) Store-and-forward offline queue · (3) Formal risk register + stakeholder assumptions.  
-> Test suite expanded from 23 → **45 tests** (100% pass rate). Three new scenarios added (F, G, H).
+> **Review 3 Update:**  
+> Review 2 capabilities remain in place: visual-similarity-aware picking, store-and-forward offline queuing, and dynamic A*-based rerouting.  
+> Review 3 adds 17 error-boundary tests, expanded API docstrings, a dedicated testing guide, and README API documentation.  
+> The repository currently contains **62 test cases** across five test modules.
 
 ---
 
@@ -230,7 +230,7 @@ coe_project/
 python -m pytest tests/ -v
 ```
 
-**Result: 45 passed in ~4.3 s (100% success rate)**
+**Test suite: 62 test cases across five modules.** The latest repository commit records all 62 passing; rerun the command below to verify in your environment.
 
 | Test File | Count | Description |
 |:---|:---:|:---|
@@ -238,6 +238,7 @@ python -m pytest tests/ -v
 | `test_controller.py` | 8 | ALLOW/DELAY/BLOCK, boundaries, fallback |
 | `test_simulation.py` | 7 | Geometry, multirun, scenario integration |
 | `test_visual_similarity.py` | **22** | Part catalogue, pick model, S&F, rerouting |
+| `test_error_boundaries.py` | **17** | Invalid inputs, edge cases, defensive behaviour |
 
 ---
 
@@ -249,7 +250,7 @@ python -m pytest tests/ -v
 | [`docs/Review_2_Report.md`](docs/Review_2_Report.md) | Review 2 improvements, new scenarios, updated results |
 | [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md) | 14-entry formal risk register (L×I matrix, mitigations) |
 | [`docs/STAKEHOLDER_ASSUMPTIONS.md`](docs/STAKEHOLDER_ASSUMPTIONS.md) | 22 assumptions, stakeholder map, decision-change analysis |
-| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | Quick-reference prototype status |
+| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | Quick-reference project status |\n| [`docs/TESTING.md`](docs/TESTING.md) | Review 3 test strategy and boundary coverage |
 
 ---
 
