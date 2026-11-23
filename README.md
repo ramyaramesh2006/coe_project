@@ -2,23 +2,23 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests: 45 Passed](https://img.shields.io/badge/tests-45%20passed-brightgreen.svg)]()
-[![Stage: Review 2 / 68–72% Prototype](https://img.shields.io/badge/Maturity-68--72%25%20Prototype-orange.svg)]()
+[![Tests](https://img.shields.io/badge/tests-CI%20validation%20pending-lightgrey.svg)]()
+[![Stage: Review 3 Implementation](https://img.shields.io/badge/Stage-Review%203%20Implementation-orange.svg)]()
 
 A discrete-event simulation system and intelligent wave-release dispatching controller developed to analyze, mitigate, and control physical aisle congestion in **automotive parts distribution warehouses containing visually similar components**.
 
 ---
 
-> **Review 2 Update:**  
+> **Review 2 baseline:**  
 > Three Review 1 mandated improvements fully implemented:  
 > (1) Visual-similarity-aware pick model · (2) Store-and-forward offline queue · (3) Formal risk register + stakeholder assumptions.  
-> Test suite expanded from 23 → **45 tests** (100% pass rate). Three new scenarios added (F, G, H).
+> The Review 2 baseline includes scenarios A–H, visual-similarity modelling, store-and-forward queuing, and dynamic rerouting. The test guide records 58 pre-Review-3 tests.
 
 ---
 
 ## Table of Contents
 - [Project Overview](#project-overview)
-- [Review 2 Improvements](#review-2-improvements)
+- [Review 2 Improvements](#review-2-improvements)\n- [Review 3 Additions](#review-3-additions)
 - [Architecture](#architecture)
 - [Modules](#modules)
 - [Scenarios](#scenarios)
@@ -103,9 +103,9 @@ Scenarios A–H: 8 operating conditions
 | `src/data_generator.py` | 12-aisle grid layout, skewed popularity, synthetic orders (120 workers, 350 orders) |
 | `src/congestion.py` | Guarded congestion calculation + 4-tier classification (LOW/MEDIUM/HIGH/CRITICAL) |
 | `src/controller.py` | Wave-release controller: ALLOW/DELAY/BLOCK + MANUAL FALLBACK pacing |
-| `src/simulation.py` | Discrete-event engine: visual-similarity pick times, S&F integration, A* rerouting |
+| `src/simulation.py` | Discrete-event engine: visual-similarity pick times, S&F integration, A* rerouting, timestamped movement trace |
 | `src/visual_similarity.py` | **[NEW Rev 2]** Part catalogue, pick-time model, mispick simulation |
-| `src/store_and_forward.py` | **[NEW Rev 2]** S&F queue, replay engine, network outage monitor |
+| `src/store_and_forward.py` | **[NEW Rev 2]** S&F queue, replay engine, network outage monitor |\n| `src/telemetry_security.py` | **[NEW Rev 3]** HMAC-SHA256 telemetry integrity, freshness, replay checks |
 | `src/metrics.py` | KPIs: throughput, cost, emissions, mispick count, verification overhead |
 | `src/scenarios.py` | 8 scenarios: Low Load → Extreme Load + S&F + Visual Similarity + Rerouting |
 
@@ -152,7 +152,7 @@ Scenarios A–H: 8 operating conditions
 coe_project/
 ├── Aisle_Congestion_Simulator.ipynb      # Interactive Jupyter Notebook
 ├── README.md                             # This file
-├── requirements.txt                      # Dependencies
+├── requirements.txt                      # Core dependencies\n├── requirements-dashboard.txt             # Optional Streamlit/Plotly dependencies\n├── dashboard/\n│   └── app.py                              # Review 3 interactive 2D floor dashboard
 ├── run_experiments.py                    # Master experiment runner
 ├── build_notebook.py                     # Notebook generator
 ├── data/
@@ -258,5 +258,5 @@ python -m pytest tests/ -v
 1. **Constant Walking Speed:** 1.0 m/s; no cart acceleration or turning inertia modelled.
 2. **Static Part-Aisle Mapping:** SKU location reassignments not dynamically tracked.
 3. **No Physical Gating Enforcement:** Worker compliance assumed; badge gates deferred to Review 3.
-4. **No Sensor Spoofing Defence:** Cryptographic verification planned for Review 3 (Risk R-008).
+4. **No live sensor/MQTT deployment:** HMAC signing, freshness, and replay checks are implemented as a simulation-layer component; live device provisioning and broker integration remain future work.\n5. **No physical pilot / AGV integration:** Review 3 dashboard is driven by synthetic simulation data; warehouse pilot validation and AGV/MAPF integration are not yet implemented.\n6. **No ML wave batching:** Current order release remains rule/threshold based; predictive batching remains future work.
 5. **Centroid Coordinates:** Distances model aisle centrelines, not individual shelf faces.
