@@ -1,0 +1,25 @@
+{
+  "ci_workflow_run_id": 45189372797,
+  "ci_run_number": 54,
+  "artifact_id": 14826075036,
+  "seed": 42,
+  "multi_seed_validation": [42, 101, 202, 303, 404],
+  "peak_safe_threshold_pct": 75.0,
+  "telemetry_tamper_fraction_of_order_ids": 0.10,
+  "telemetry_hmac_key": "ephemeral simulation-only test key; not a production secret",
+  "validation": {
+    "tests": "76 passed in 1.81 seconds on Python 3.11",
+    "experiment_runner": "success",
+    "dashboard_smoke_test": "HTTP 200",
+    "artifact_upload": "success"
+  },
+  "generated_files": [
+    "review3_experiment_summary.csv",
+    "review3_sensitivity_analysis.csv",
+    "review3_multiseed_runs.csv",
+    "review3_multiseed_summary.csv",
+    "review3_telemetry_audit.csv",
+    "review3_tamper_controller_log.csv"
+  ],
+  "interpretation_note": "The controller's configured 75% safe release threshold was not achieved as a global maximum congestion cap in the full peak/extreme experiments. See docs/Review_3_Report.md."
+}
