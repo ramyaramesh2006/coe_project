@@ -1,8 +1,9 @@
 # Testing Guide — Aisle Congestion Simulator & Wave-Release Controller
 
 **Document:** Test Strategy, Coverage Rationale, and Execution Guide
-**Review Stage:** Review 3 (100% Prototype Maturity)
-**Total Tests:** 58 passing (100% pass rate)
+**Review Stage:** Review 3 implementation (validation pending)
+**Existing Review 2 Tests:** 58 (documented before Review 3)  
+**New Review 3 Tests:** 10 added; expected total 68, pending CI confirmation
 
 ---
 
@@ -24,9 +25,9 @@ Every test in this suite follows **three rules**:
 | `test_simulation.py` | 7 | `src/simulation.py` | Integration |
 | `test_visual_similarity.py` | 22 | `src/visual_similarity.py`, `src/store_and_forward.py` | Unit + Integration |
 | `test_error_boundaries.py` | 13 | All modules | Error boundary |
-| **Total** | **58** | | |
-
----
+| `test_movement_trace.py` | 2 | `src/simulation.py` | Integration |
+| `test_telemetry_security.py` | 8 | `src/telemetry_security.py` | Security unit tests |
+| **Expected total** | **68** | | **Awaiting CI confirmation** |
 
 ## 3. How to Run
 
