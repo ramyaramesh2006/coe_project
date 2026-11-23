@@ -26,7 +26,8 @@ Every test in this suite follows **three rules**:
 | `test_visual_similarity.py` | 22 | `src/visual_similarity.py`, `src/store_and_forward.py` | Unit + Integration |
 | `test_error_boundaries.py` | 17 | All modules | Error boundary |
 | `test_movement_trace.py` | 2 | `src/simulation.py` | Integration |
-| `test_telemetry_security.py` | 8 | `src/telemetry_security.py` | Security unit tests |\n| `test_telemetry_integration.py` | 3 | `src/simulation.py` + telemetry | Integration
+| `test_telemetry_security.py` | 8 | `src/telemetry_security.py` | Security unit tests |
+| `test_telemetry_integration.py` | 3 | `src/simulation.py` + telemetry | Integration
 | **Expected total** | **75** | | **Awaiting execution / CI** |
 
 ## 3. How to Run
