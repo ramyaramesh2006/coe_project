@@ -2,8 +2,8 @@
 
 **Document:** Test Strategy, Coverage Rationale, and Execution Guide
 **Review Stage:** Review 3 implementation (validation pending)
-**Existing Review 2 Tests:** 58 (documented before Review 3)  
-**New Review 3 Tests:** 10 added; expected total 68, pending CI confirmation
+**Existing Review 2 Tests:** 62 test functions in source  
+**New Review 3 Tests:** 13 added; expected total 75, execution pending
 
 ---
 
@@ -24,10 +24,10 @@ Every test in this suite follows **three rules**:
 | `test_controller.py` | 8 | `src/controller.py` | Unit |
 | `test_simulation.py` | 7 | `src/simulation.py` | Integration |
 | `test_visual_similarity.py` | 22 | `src/visual_similarity.py`, `src/store_and_forward.py` | Unit + Integration |
-| `test_error_boundaries.py` | 13 | All modules | Error boundary |
+| `test_error_boundaries.py` | 17 | All modules | Error boundary |
 | `test_movement_trace.py` | 2 | `src/simulation.py` | Integration |
-| `test_telemetry_security.py` | 8 | `src/telemetry_security.py` | Security unit tests |
-| **Expected total** | **68** | | **Awaiting CI confirmation** |
+| `test_telemetry_security.py` | 8 | `src/telemetry_security.py` | Security unit tests |\n| `test_telemetry_integration.py` | 3 | `src/simulation.py` + telemetry | Integration
+| **Expected total** | **75** | | **Awaiting execution / CI** |
 
 ## 3. How to Run
 
@@ -124,5 +124,5 @@ These tests verify that every public function handles malformed, extreme, or mis
 
 - GitHub Actions is configured to run `python -m pytest tests/ -v` for pushes to `main` and `review3-implementation`, and for pull requests targeting `main`.
 - Fixed seeds (`seed=42` default, multi-seed: 42/101/202/303/404) support reproducible simulation tests.
-- The expected 68-test count is based on the test functions listed above. Treat it as unverified until the pull-request CI result reports completion.
+- The expected 75-test count is based on the test functions listed above (62 existing + 13 Review 3). Treat it as unverified until the pull-request CI result reports completion.
 - The dashboard uses optional dependencies installed separately with `pip install -r requirements-dashboard.txt`.
