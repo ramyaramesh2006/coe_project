@@ -198,7 +198,6 @@ coe_project/
     ├── Review_1_Report.md
     ├── Review_2_Report.md
     ├── PROJECT_STATUS.md
-    ├── PROJECT_STATUS.md
     ├── RISK_REGISTER.md
     ├── STAKEHOLDER_ASSUMPTIONS.md
     └── STAKEHOLDER_VALIDATION.md
