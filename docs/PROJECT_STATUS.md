@@ -28,6 +28,19 @@ Source inspection counts **62 existing test functions** (8 congestion + 8 contro
 
 **Test result: PASS.** GitHub Actions run #54 executed the full suite on Python 3.11: **76 passed in 1.81 seconds**. The same run successfully executed `run_review3_experiments.py`, uploaded the generated artifacts, and smoke-tested dashboard startup (HTTP 200).
 
+## 3A. Review 3 experiment results (GitHub Actions run #54)
+
+The Review 3 experiment runner completed successfully and its summary/sensitivity/multi-seed CSVs are committed under `results/`. The full telemetry audit and controller logs are available in the CI artifact for [run #54](https://github.com/ramyaramesh2006/coe_project/actions/runs/45189372797).
+
+- Peak baseline vs controlled throughput: 201.34 vs 199.72 orders/hr (−0.80%).
+- Peak maximum congestion: 266.67% vs 233.33%; controlled remains above the 75% target.
+- Extreme baseline vs controlled throughput: 252.13 vs 242.37 orders/hr (−3.87%).
+- Extreme maximum congestion: 366.67% vs 300%; controlled remains above the 75% target.
+- Telemetry tamper scenario: 1,450 packets checked, 1,394 accepted, 56 rejected; 56 fallback decisions queued and replayed.
+- All scenario runs reported 100% simulated order completion, which is not a real-world uptime/safety measure.
+
+**Objective status:** The experiments show some congestion reductions, but the strict goal of increased throughput while keeping global maximum congestion at or below 75% is not achieved in peak/extreme loads. This limitation is recorded in the Review 3 report.
+
 ## 4. Reproducible validation commands
 
 From the repository root:
