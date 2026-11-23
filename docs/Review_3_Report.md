@@ -191,7 +191,7 @@ The following defensive cases are covered by code and tests:
 5. **Sensor/network outage:** the existing manual fallback and store-and-forward queue handle missing telemetry and replay decisions after reconnection.
 6. **Invalid key/signature:** empty keys, wrong keys, and invalid signatures are rejected or raise the documented validation error.
 
-The automated tests cover these cases. GitHub Actions run #31 executed the complete 75-test suite, including the new telemetry security and integration tests, and reported 75 passed in 3.19 seconds.
+The automated tests cover these cases. GitHub Actions run #54 executed the complete 76-test suite, including the new telemetry security, integration, and projected-occupancy tests, and reported 76 passed in 1.81 seconds.
 
 ## 7. Experiments, targets, and error analysis
 
@@ -241,7 +241,7 @@ All rows completed the requested simulated orders (100% modelled order-completio
 
 ### 7.3 Target attainment and trade-off analysis
 
-The configured safe release threshold is 75%. The controller now checks projected occupancy at each entry, but the aggregate simulation still records maximum congestion above 75% in peak and extreme runs. The target of keeping the *measured maximum* below the safe threshold is therefore **not achieved** in these full-load experiments. The dedicated single-hotspot test passes, but it does not establish a global guarantee across all arrival schedules.
+The configured safe release threshold is 75%. The controller now checks projected occupancy at each entry, but the aggregate simulation still records maximum congestion above 75% in normal, peak, and extreme runs. The target of keeping the *measured maximum* below the safe threshold is therefore **not achieved** in these full-load experiments. The dedicated single-hotspot test passes, but it does not establish a global guarantee across all arrival schedules.
 
 Peak controlled versus baseline:
 - Throughput: 201.34 → 199.72 orders/hr (**−0.80%**).
