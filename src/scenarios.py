@@ -20,6 +20,7 @@ from src.data_generator import generate_warehouse_dataset, DEFAULT_AISLES
 from src.simulation import WarehouseSimulation
 from src.metrics import compute_simulation_metrics, generate_comparison_table, compute_hotspot_analysis
 from src.store_and_forward import NetworkStateMonitor
+from src.telemetry_security import TelemetryAuthenticator
 from src.visual_similarity import (
     PART_CATALOGUE, AISLE_PART_MAP, compute_expected_dwell_time, get_zone_similarity_risk
 )
