@@ -72,7 +72,7 @@ This project implements a **discrete-event simulation model** combined with a **
 `WarehouseSimulation.get_movement_trace()` exposes travel and pick segments with worker/order IDs, simulation timestamps, and start/end grid coordinates. The trace feeds the 2D floor dashboard.
 
 ### Interactive 2D floor dashboard
-Install optional dependencies with `pip install -r requirements-dashboard.txt`, then run `streamlit run dashboard/app.py`. Select Normal, Peak, or Extreme load, toggle wave-release control, and scrub simulation time to inspect worker movement and aisle congestion.
+Install optional dependencies with `pip install -r requirements-dashboard.txt`, then run `streamlit run dashboard/app.py`. Select Normal, Peak, or Extreme load, toggle wave-release control, and scrub simulation time to inspect worker movement and aisle congestion. Run `python run_review3_experiments.py` to generate the baseline/controlled, failure, telemetry-tamper, sensitivity, and multi-seed CSV evidence under `results/`.
 
 ### Telemetry integrity component
 `src/telemetry_security.py` provides HMAC-SHA256 signing, constant-time signature verification, packet freshness checks, and nonce-based replay detection. This is a simulation-layer security component; it does not replace TLS, device identity, secure key provisioning, or a live MQTT deployment.
@@ -174,7 +174,7 @@ coe_project/
 ├── requirements-dashboard.txt             # Optional Streamlit/Plotly dependencies
 ├── dashboard/
 │   └── app.py                              # Review 3 interactive 2D floor dashboard
-├── run_experiments.py                    # Master experiment runner
+├── run_experiments.py                    # Existing Review 1/2 experiment runner\n├── run_review3_experiments.py            # Review 3 scenario, sensitivity, multi-seed runner
 ├── build_notebook.py                     # Notebook generator
 ├── data/
 │   └── warehouse_simulation_data.csv     # Synthetic dataset
@@ -254,7 +254,7 @@ Run the full suite with:
 python -m pytest tests/ -v
 ```
 
-The Review 2 test guide lists 58 existing tests. Review 3 adds 10 tests (2 movement-trace tests and 8 telemetry-security tests), for an expected total of 68. The expected count is not a passing result; confirm it from the Review 3 CI run.
+The Review 2 source suite contains 62 test functions (8 congestion, 8 controller, 7 simulation, 22 visual-similarity, and 17 error-boundary tests). Review 3 adds 13 tests (2 movement trace, 8 HMAC security, and 3 telemetry integration), for an expected total of 75. The expected count is not a passing result; confirm it by running pytest.
 
 | Test File | Count | Description |
 |:---|:---:|:---|
@@ -262,9 +262,9 @@ The Review 2 test guide lists 58 existing tests. Review 3 adds 10 tests (2 movem
 | `test_controller.py` | 8 | ALLOW/DELAY/BLOCK, boundaries, fallback |
 | `test_simulation.py` | 7 | Geometry, multirun, scenario integration |
 | `test_visual_similarity.py` | 22 | Part catalogue, pick model, S&F, rerouting |
-| `test_error_boundaries.py` | 13 | Defensive and error-boundary tests |
+| `test_error_boundaries.py` | 17 | Defensive and error-boundary tests |
 | `test_movement_trace.py` | 2 | Timestamped worker movement segments |
-| `test_telemetry_security.py` | 8 | HMAC, tamper, freshness, replay checks |
+| `test_telemetry_security.py` | 8 | HMAC, tamper, freshness, replay checks |\n| `test_telemetry_integration.py` | 3 | Authenticated sensor data, fallback, S&F integration |
 
 ## Documentation
 
@@ -274,7 +274,7 @@ The Review 2 test guide lists 58 existing tests. Review 3 adds 10 tests (2 movem
 | [`docs/Review_2_Report.md`](docs/Review_2_Report.md) | Review 2 improvements, new scenarios, updated results |
 | [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md) | 14-entry formal risk register (L×I matrix, mitigations) |
 | [`docs/STAKEHOLDER_ASSUMPTIONS.md`](docs/STAKEHOLDER_ASSUMPTIONS.md) | 22 assumptions, stakeholder map, decision-change analysis |
-| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | Quick-reference prototype status |
+| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | Quick-reference prototype status |\n| [`docs/STAKEHOLDER_VALIDATION.md`](docs/STAKEHOLDER_VALIDATION.md) | Walkthrough and blank feedback evidence template |
 
 ---
 
