@@ -20,6 +20,7 @@ from src.congestion import calculate_congestion, classify_congestion
 from src.controller import wave_release_controller
 from src.visual_similarity import compute_adjusted_pick_time, AISLE_PART_MAP
 from src.store_and_forward import StoreAndForwardQueue, NetworkStateMonitor
+from src.telemetry_security import TelemetryAuthenticator
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -92,6 +93,8 @@ class WarehouseSimulation:
         use_store_and_forward: bool = False,
         network_monitor: Optional[NetworkStateMonitor] = None,
         saf_spool_path: Optional[str] = None,
+        telemetry_authenticator: Optional[TelemetryAuthenticator] = None,
+        telemetry_tamper_order_ids: Optional[set] = None,
         seed: int = 42,
     ):
         """
@@ -114,6 +117,9 @@ class WarehouseSimulation:
         use_store_and_forward: Enable the store-and-forward offline queue
         network_monitor      : NetworkStateMonitor instance for intermittent outages
         saf_spool_path       : CSV path to write store-and-forward spool
+        telemetry_authenticator: Optional HMAC verifier for simulated occupancy telemetry
+        telemetry_tamper_order_ids: Order IDs whose telemetry payload is deliberately altered
+                                    after signing (for defensive test scenarios)
         seed                 : RNG seed for reproducibility of visual-similarity sampling
         """
         self.raw_df = orders_df.copy()
@@ -134,6 +140,12 @@ class WarehouseSimulation:
         self.network_monitor = network_monitor
         self.saf_queue = StoreAndForwardQueue(spool_path=saf_spool_path) if use_store_and_forward else None
         self._prev_online_state: bool = True  # Track transitions for S&F
+
+        # Review 3: optional authenticated telemetry verification.
+        self.telemetry_authenticator = telemetry_authenticator
+        self.telemetry_tamper_order_ids = set(telemetry_tamper_order_ids or [])
+        self.telemetry_logs: List[Dict[str, Any]] = []
+        self.telemetry_rejections: List[Dict[str, Any]] = []
 
         # RNG for pick-time sampling (seeded for reproducibility)
         self._rng = np.random.default_rng(seed)
@@ -234,13 +246,47 @@ class WarehouseSimulation:
             # ── Wave-release controller ──────────────────────────────────────
             if self.controlled:
                 max_retries = 20
-                for _ in range(max_retries):
+                for attempt in range(max_retries):
                     current_online = self._resolve_sensor_available(actual_release_time)
-                    self._handle_store_and_forward_transition(actual_release_time, current_online)
 
                     current_workers = self._get_current_workers_in_aisle(
                         target_first_aisle, actual_release_time
                     )
+
+                    # Verify simulated occupancy telemetry before trusting it for release control.
+                    # A failed signature/freshness/replay check forces the existing manual fallback.
+                    if current_online and self.telemetry_authenticator is not None:
+                        telemetry_payload = {
+                            "aisle_id": target_first_aisle,
+                            "current_workers": int(current_workers),
+                            "capacity": int(aisle_cap),
+                        }
+                        nonce = f"{order_id}:{attempt}"
+                        packet = self.telemetry_authenticator.create_packet(
+                            telemetry_payload,
+                            timestamp=float(actual_release_time),
+                            nonce=nonce,
+                        )
+                        if order_id in self.telemetry_tamper_order_ids:
+                            packet["payload"]["current_workers"] = int(current_workers) + 1
+
+                        accepted, verification_reason = self.telemetry_authenticator.verify_packet(
+                            packet, now=float(actual_release_time)
+                        )
+                        telemetry_event = {
+                            "order_id": order_id,
+                            "timestamp": float(actual_release_time),
+                            "aisle_id": target_first_aisle,
+                            "accepted": bool(accepted),
+                            "reason": verification_reason,
+                        }
+                        self.telemetry_logs.append(telemetry_event)
+                        if not accepted:
+                            self.telemetry_rejections.append(telemetry_event)
+                            current_online = False
+
+                    self._handle_store_and_forward_transition(actual_release_time, current_online)
+
                     ctrl_decision = wave_release_controller(
                         congestion_percentage=None,
                         requested_workers=1,
@@ -415,6 +461,20 @@ class WarehouseSimulation:
     def get_movement_trace(self) -> pd.DataFrame:
         """Return timestamped worker travel and pick segments for visualization."""
         return pd.DataFrame(self.movement_trace)
+
+    def get_telemetry_security_summary(self) -> Dict[str, Any]:
+        """Return accepted/rejected simulated telemetry verification counts."""
+        accepted = sum(1 for event in self.telemetry_logs if event["accepted"])
+        rejected = len(self.telemetry_rejections)
+        return {
+            "packets_checked": len(self.telemetry_logs),
+            "packets_accepted": accepted,
+            "packets_rejected": rejected,
+            "rejection_reasons": {
+                reason: sum(1 for event in self.telemetry_rejections if event["reason"] == reason)
+                for reason in sorted({event["reason"] for event in self.telemetry_rejections})
+            },
+        }
 
     def get_store_and_forward_summary(self) -> Optional[Dict[str, Any]]:
         """Returns the S&F queue summary if store-and-forward is enabled."""
