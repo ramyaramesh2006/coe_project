@@ -1,0 +1,10 @@
+Metric,Mean,Std,Min,Max
+base_critical_events,152.4,5.85,141.0,157.0
+ctrl_critical_events,150.2,8.28,136.0,161.0
+critical_reduction_pct,1.49,2.43,-2.55,3.85
+ctrl_avg_waiting_sec,75.77,13.26,54.51,93.0
+ctrl_delayed_orders,247.2,9.45,229.0,254.0
+base_throughput,197.3,2.5,194.74,201.34
+ctrl_throughput,194.69,3.87,191.04,199.72
+base_cost,1360.96,35.5,1306.15,1412.53
+ctrl_cost,1456.82,43.47,1379.16,1500.11
