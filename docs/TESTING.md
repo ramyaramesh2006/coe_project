@@ -1,8 +1,9 @@
 # Testing Guide — Aisle Congestion Simulator & Wave-Release Controller
 
 **Document:** Test Strategy, Coverage Rationale, and Execution Guide
-**Review Stage:** Review 3 (100% Prototype Maturity)
-**Total Tests:** 58 passing (100% pass rate)
+**Review Stage:** Review 3 implementation (76 tests passed; experiment/dashboard startup passed)
+**Existing Review 2 Tests:** 62 test functions in source  
+**New Review 3 Tests:** 14 added; total 76 passed in GitHub Actions run #54
 
 ---
 
@@ -23,10 +24,12 @@ Every test in this suite follows **three rules**:
 | `test_controller.py` | 8 | `src/controller.py` | Unit |
 | `test_simulation.py` | 7 | `src/simulation.py` | Integration |
 | `test_visual_similarity.py` | 22 | `src/visual_similarity.py`, `src/store_and_forward.py` | Unit + Integration |
-| `test_error_boundaries.py` | 13 | All modules | Error boundary |
-| **Total** | **58** | | |
-
----
+| `test_error_boundaries.py` | 17 | All modules | Error boundary |
+| `test_movement_trace.py` | 2 | `src/simulation.py` | Integration |
+| `test_telemetry_security.py` | 8 | `src/telemetry_security.py` | Security unit tests |
+| `test_telemetry_integration.py` | 3 | `src/simulation.py` + telemetry | Integration |
+| `test_projected_occupancy_gate.py` | 1 | `src/simulation.py` | Safety / Integration |
+| **Total** | **76** | | **76 passed** |
 
 ## 3. How to Run
 
@@ -121,7 +124,8 @@ These tests verify that every public function handles malformed, extreme, or mis
 
 ## 7. CI / Reproducibility
 
-- All tests run in < 30 seconds on a standard laptop.
-- Fixed seeds (`seed=42` default, multi-seed: 42/101/202/303/404) ensure deterministic output.
-- No network calls, no file I/O side-effects (S&F spool writes to `results/` which is gitignored during tests).
-- Compatible: Python 3.9, 3.10, 3.11, 3.12, 3.13.
+- GitHub Actions run #54 executed the full suite on Python 3.11: **76 passed in 1.81 seconds**.
+- The same run executed `python run_review3_experiments.py`, uploaded the generated CSV/JSON artifact, installed optional dashboard dependencies, and passed the Streamlit health-endpoint smoke test (HTTP 200).
+- Fixed seeds (`seed=42` default, multi-seed: 42/101/202/303/404) support reproducible simulation tests.
+- The committed `results/review3_*.csv` files contain the measured summary, sensitivity, and multi-seed outputs. The full telemetry audit and controller logs are available in the CI artifact linked from the PR.
+- Dashboard dependencies are optional and installed separately with `pip install -r requirements-dashboard.txt`.

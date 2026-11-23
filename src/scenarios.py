@@ -20,6 +20,7 @@ from src.data_generator import generate_warehouse_dataset, DEFAULT_AISLES
 from src.simulation import WarehouseSimulation
 from src.metrics import compute_simulation_metrics, generate_comparison_table, compute_hotspot_analysis
 from src.store_and_forward import NetworkStateMonitor
+from src.telemetry_security import TelemetryAuthenticator
 from src.visual_similarity import (
     PART_CATALOGUE, AISLE_PART_MAP, compute_expected_dwell_time, get_zone_similarity_risk
 )
@@ -734,4 +735,59 @@ def run_dynamic_rerouting_scenario(seed: int = 42) -> Dict[str, Any]:
             "reroute_events": reroute_events_df,
         },
         "comparison_table": comparison_df,
+    }
+
+def run_telemetry_tamper_scenario(seed: int = 42, num_orders: int = 300,
+                                  tamper_fraction: float = 0.10) -> Dict[str, Any]:
+    """
+    Scenario I (Review 3): authenticated telemetry with deliberate payload tampering.
+
+    A deterministic subset of simulated occupancy packets is modified after signing.
+    The HMAC verifier must reject those packets and route the dispatch through the
+    existing conservative manual fallback and store-and-forward queue. The fixed key
+    below is for reproducible simulation/testing only; never use it in production.
+    """
+    if not 0.0 <= tamper_fraction <= 1.0:
+        raise ValueError("tamper_fraction must be between 0.0 and 1.0")
+
+    data_df = generate_warehouse_dataset(
+        num_workers=120,
+        num_orders=num_orders,
+        seed=seed,
+        scenario_name="Telemetry Tamper / Fallback",
+        peak_multiplier=2.8,
+    )
+    tampered_count = int(round(num_orders * tamper_fraction))
+    tampered_order_ids = {f"ORD_{i:04d}" for i in range(1, tampered_count + 1)}
+    authenticator = TelemetryAuthenticator(
+        secret_key=b"review3-simulation-only-key",
+        max_age_seconds=30.0,
+        future_tolerance_seconds=5.0,
+    )
+    simulation = WarehouseSimulation(
+        orders_df=data_df,
+        controlled=True,
+        safe_threshold=75.0,
+        sensor_available=True,
+        fallback_congestion=65.0,
+        use_store_and_forward=True,
+        telemetry_authenticator=authenticator,
+        telemetry_tamper_order_ids=tampered_order_ids,
+        seed=seed,
+    )
+    orders_result = simulation.run()
+    timeseries = simulation.get_aisle_congestion_timeseries(time_step_seconds=30.0)
+    metrics = compute_simulation_metrics(orders_result, timeseries)
+
+    return {
+        "scenario": "Telemetry Tamper / Fallback",
+        "dataset": data_df,
+        "orders_result": orders_result,
+        "timeseries": timeseries,
+        "metrics": metrics,
+        "telemetry_summary": simulation.get_telemetry_security_summary(),
+        "telemetry_logs": simulation.telemetry_logs,
+        "telemetry_rejections": simulation.telemetry_rejections,
+        "store_and_forward_summary": simulation.get_store_and_forward_summary(),
+        "controller_logs": simulation.controller_logs,
     }

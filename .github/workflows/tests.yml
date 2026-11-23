@@ -1,0 +1,63 @@
+name: Python tests and Review 3 validation
+
+on:
+  push:
+    branches: ["main", "review3-implementation"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test-and-experiment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt
+      - name: Run full test suite
+        run: python -m pytest tests/ -v
+      - name: Run Review 3 experiments
+        run: python run_review3_experiments.py
+      - name: Upload generated experiment evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: review3-experiment-evidence
+          path: results/review3*
+          if-no-files-found: error
+      - name: Install dashboard dependencies
+        run: pip install -r requirements-dashboard.txt
+      - name: Smoke-test dashboard startup
+        run: |
+          python - <<'PY'
+          import subprocess
+          import sys
+          import time
+          import urllib.error
+          import urllib.request
+
+          command = [
+              sys.executable, "-m", "streamlit", "run", "dashboard/app.py",
+              "--server.headless", "true", "--server.port", "8501",
+              "--browser.gatherUsageStats", "false",
+          ]
+          process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+          try:
+              for _ in range(45):
+                  try:
+                      response = urllib.request.urlopen("http://127.0.0.1:8501/_stcore/health", timeout=2)
+                      if response.status == 200:
+                          print("Dashboard health endpoint returned HTTP 200.")
+                          break
+                  except (urllib.error.URLError, TimeoutError):
+                      time.sleep(1)
+              else:
+                  raise SystemExit("Dashboard did not become healthy within 45 seconds.")
+          finally:
+              process.terminate()
+              try:
+                  process.wait(timeout=10)
+              except subprocess.TimeoutExpired:
+                  process.kill()
+          PY

@@ -2,23 +2,25 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests: 45 Passed](https://img.shields.io/badge/tests-45%20passed-brightgreen.svg)]()
-[![Stage: Review 2 / 68–72% Prototype](https://img.shields.io/badge/Maturity-68--72%25%20Prototype-orange.svg)]()
+[![Tests](https://img.shields.io/badge/tests-CI%20validation%20pending-lightgrey.svg)]()
+[![Stage: Review 3 Implementation](https://img.shields.io/badge/Stage-Review%203%20Implementation-orange.svg)]()
 
 A discrete-event simulation system and intelligent wave-release dispatching controller developed to analyze, mitigate, and control physical aisle congestion in **automotive parts distribution warehouses containing visually similar components**.
 
 ---
 
-> **Review 2 Update:**  
+> **Review 2 baseline:**  
 > Three Review 1 mandated improvements fully implemented:  
 > (1) Visual-similarity-aware pick model · (2) Store-and-forward offline queue · (3) Formal risk register + stakeholder assumptions.  
-> Test suite expanded from 23 → **45 tests** (100% pass rate). Three new scenarios added (F, G, H).
+> The Review 2 baseline includes scenarios A–H, visual-similarity modelling, store-and-forward queuing, and dynamic rerouting. The test guide records 58 pre-Review-3 tests.
 
 ---
 
 ## Table of Contents
 - [Project Overview](#project-overview)
 - [Review 2 Improvements](#review-2-improvements)
+- [Review 3 Additions](#review-3-additions)
+- [Review 3 Additions](#review-3-additions)
 - [Architecture](#architecture)
 - [Modules](#modules)
 - [Scenarios](#scenarios)
@@ -64,6 +66,17 @@ This project implements a **discrete-event simulation model** combined with a **
 
 ---
 
+## Review 3 Additions
+
+### Timestamped worker movement
+`WarehouseSimulation.get_movement_trace()` exposes travel and pick segments with worker/order IDs, simulation timestamps, and start/end grid coordinates. The trace feeds the 2D floor dashboard.
+
+### Interactive 2D floor dashboard
+Install optional dependencies with `pip install -r requirements-dashboard.txt`, then run `streamlit run dashboard/app.py`. Select Normal, Peak, or Extreme load, toggle wave-release control, and scrub simulation time to inspect worker movement and aisle congestion. Run `python run_review3_experiments.py` to generate the baseline/controlled, failure, telemetry-tamper, sensitivity, and multi-seed CSV evidence under `results/`.
+
+### Telemetry integrity component
+`src/telemetry_security.py` provides HMAC-SHA256 signing, constant-time signature verification, packet freshness checks, and nonce-based replay detection. This is a simulation-layer security component; it does not replace TLS, device identity, secure key provisioning, or a live MQTT deployment.
+
 ## Architecture
 
 ```
@@ -103,9 +116,11 @@ Scenarios A–H: 8 operating conditions
 | `src/data_generator.py` | 12-aisle grid layout, skewed popularity, synthetic orders (120 workers, 350 orders) |
 | `src/congestion.py` | Guarded congestion calculation + 4-tier classification (LOW/MEDIUM/HIGH/CRITICAL) |
 | `src/controller.py` | Wave-release controller: ALLOW/DELAY/BLOCK + MANUAL FALLBACK pacing |
-| `src/simulation.py` | Discrete-event engine: visual-similarity pick times, S&F integration, A* rerouting |
+| `src/simulation.py` | Discrete-event engine: visual-similarity pick times, S&F integration, A* rerouting, timestamped movement trace |
 | `src/visual_similarity.py` | **[NEW Rev 2]** Part catalogue, pick-time model, mispick simulation |
 | `src/store_and_forward.py` | **[NEW Rev 2]** S&F queue, replay engine, network outage monitor |
+| `src/telemetry_security.py` | **[NEW Rev 3]** HMAC-SHA256 telemetry integrity, freshness, and replay checks |
+| `src/telemetry_security.py` | **[NEW Rev 3]** HMAC-SHA256 telemetry integrity, freshness, replay checks |
 | `src/metrics.py` | KPIs: throughput, cost, emissions, mispick count, verification overhead |
 | `src/scenarios.py` | 8 scenarios: Low Load → Extreme Load + S&F + Visual Similarity + Rerouting |
 
@@ -150,43 +165,50 @@ Scenarios A–H: 8 operating conditions
 
 ```
 coe_project/
-├── Aisle_Congestion_Simulator.ipynb      # Interactive Jupyter Notebook
-├── README.md                             # This file
-├── requirements.txt                      # Dependencies
-├── run_experiments.py                    # Master experiment runner
-├── build_notebook.py                     # Notebook generator
+├── Aisle_Congestion_Simulator.ipynb
+├── README.md
+├── requirements.txt
+├── requirements-dashboard.txt
+├── run_experiments.py
+├── run_review3_experiments.py
+├── dashboard/
+│   └── app.py
 ├── data/
-│   └── warehouse_simulation_data.csv     # Synthetic dataset
 ├── src/
-│   ├── __init__.py                       # Package init (v0.2.0)
-│   ├── data_generator.py                 # Grid layout + synthetic data
-│   ├── congestion.py                     # Congestion engine
-│   ├── controller.py                     # Wave-release controller
-│   ├── simulation.py                     # Discrete-event engine (Rev 2)
-│   ├── visual_similarity.py              # ★ NEW: Part catalogue + pick model
-│   ├── store_and_forward.py              # ★ NEW: S&F queue + network monitor
-│   ├── metrics.py                        # KPIs (+ mispick cost, Rev 2)
-│   └── scenarios.py                      # 8 scenarios (A–H, Rev 2)
+│   ├── data_generator.py
+│   ├── congestion.py
+│   ├── controller.py
+│   ├── simulation.py
+│   ├── visual_similarity.py
+│   ├── store_and_forward.py
+│   ├── telemetry_security.py
+│   ├── metrics.py
+│   └── scenarios.py
 ├── tests/
-│   ├── __init__.py
-│   ├── test_congestion.py                # 8 tests
-│   ├── test_controller.py                # 8 tests
-│   ├── test_simulation.py                # 7 tests
-│   └── test_visual_similarity.py         # ★ NEW: 22 tests (Rev 2)
+│   ├── test_congestion.py
+│   ├── test_controller.py
+│   ├── test_simulation.py
+│   ├── test_visual_similarity.py
+│   ├── test_error_boundaries.py
+│   ├── test_movement_trace.py
+│   ├── test_telemetry_security.py
+│   ├── test_telemetry_integration.py
+│   └── test_projected_occupancy_gate.py
 ├── results/
-│   ├── multi_scenario_comparison.csv
-│   ├── hotspot_analysis.csv
-│   ├── baseline_vs_controlled.csv
-│   ├── sensitivity_analysis.csv
-│   ├── multirun_validation.csv
-│   ├── store_forward_spool.csv           # ★ NEW: S&F audit trail
-│   └── fig1_*.png to fig10_*.png
+│   ├── review3_experiment_summary.csv
+│   ├── review3_sensitivity_analysis.csv
+│   ├── review3_multiseed_runs.csv
+│   ├── review3_multiseed_summary.csv
+│   ├── review3_telemetry_audit_summary.csv
+│   └── review3_run_metadata.json
 └── docs/
     ├── Review_1_Report.md
-    ├── Review_2_Report.md                # ★ NEW
-    ├── RISK_REGISTER.md                  # ★ NEW: 14-entry formal risk register
-    ├── STAKEHOLDER_ASSUMPTIONS.md        # ★ NEW: 22 formalised assumptions
-    └── PROJECT_STATUS.md
+    ├── Review_2_Report.md
+    ├── Review_3_Report.md
+    ├── PROJECT_STATUS.md
+    ├── RISK_REGISTER.md
+    ├── STAKEHOLDER_ASSUMPTIONS.md
+    └── STAKEHOLDER_VALIDATION.md
 ```
 
 ---
@@ -226,20 +248,25 @@ coe_project/
 
 ## Testing
 
+Run the full suite with:
+
 ```bash
 python -m pytest tests/ -v
 ```
 
-**Result: 45 passed in ~4.3 s (100% success rate)**
+The Review 2 source suite contains 62 test functions. Review 3 adds 14 tests, for a total of 76. GitHub Actions run #54 confirmed **76 passed in 1.81 seconds** on Python 3.11; the experiment runner and dashboard startup smoke test also passed.
 
 | Test File | Count | Description |
 |:---|:---:|:---|
 | `test_congestion.py` | 8 | Calculation, classification, edge cases |
 | `test_controller.py` | 8 | ALLOW/DELAY/BLOCK, boundaries, fallback |
 | `test_simulation.py` | 7 | Geometry, multirun, scenario integration |
-| `test_visual_similarity.py` | **22** | Part catalogue, pick model, S&F, rerouting |
-
----
+| `test_visual_similarity.py` | 22 | Part catalogue, pick model, S&F, rerouting |
+| `test_error_boundaries.py` | 17 | Defensive and error-boundary tests |
+| `test_movement_trace.py` | 2 | Timestamped worker movement segments |
+| `test_telemetry_security.py` | 8 | HMAC, tamper, freshness, replay checks |
+| `test_telemetry_integration.py` | 3 | Authenticated sensor data, fallback, S&F integration |
+| `test_projected_occupancy_gate.py` | 1 | Projected occupancy at aisle entry |
 
 ## Documentation
 
@@ -250,13 +277,17 @@ python -m pytest tests/ -v
 | [`docs/RISK_REGISTER.md`](docs/RISK_REGISTER.md) | 14-entry formal risk register (L×I matrix, mitigations) |
 | [`docs/STAKEHOLDER_ASSUMPTIONS.md`](docs/STAKEHOLDER_ASSUMPTIONS.md) | 22 assumptions, stakeholder map, decision-change analysis |
 | [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | Quick-reference prototype status |
+| [`docs/Review_3_Report.md`](docs/Review_3_Report.md) | Review 3 implementation, evidence, and remaining validation |
+| [`docs/STAKEHOLDER_VALIDATION.md`](docs/STAKEHOLDER_VALIDATION.md) | Walkthrough and blank feedback evidence template |
 
 ---
 
 ## Limitations
 
 1. **Constant Walking Speed:** 1.0 m/s; no cart acceleration or turning inertia modelled.
-2. **Static Part-Aisle Mapping:** SKU location reassignments not dynamically tracked.
-3. **No Physical Gating Enforcement:** Worker compliance assumed; badge gates deferred to Review 3.
-4. **No Sensor Spoofing Defence:** Cryptographic verification planned for Review 3 (Risk R-008).
-5. **Centroid Coordinates:** Distances model aisle centrelines, not individual shelf faces.
+2. **Static Part-Aisle Mapping:** SKU location reassignments are not dynamically tracked.
+3. **No Physical Gating Enforcement:** Worker compliance is assumed; badge-gate hardware is not integrated.
+4. **No Live Sensor/MQTT Deployment:** HMAC signing, freshness, and replay checks are implemented as a simulation-layer component; live device provisioning and broker integration remain future work.
+5. **No Physical Pilot / AGV Integration:** The dashboard uses synthetic simulation data; warehouse pilot validation and AGV/MAPF integration are not implemented.
+6. **No ML Wave Batching:** Current order release remains rule/threshold based; predictive batching remains future work.
+7. **Centroid Coordinates:** Distances model aisle centrelines, not individual shelf faces.

@@ -1,0 +1,8 @@
+scenario,mode,requested_orders,completed_orders,completion_reliability_pct,throughput_orders_per_hr,avg_waiting_time_sec,max_congestion_pct,critical_events_count,total_distance_m,total_estimated_cost_usd,estimated_emissions_kg,total_verification_overhead_sec,total_mispick_count,rerouted_orders_count,fallback_dispatches,packets_checked,packets_accepted,packets_rejected,queued_events,replayed_events
+Normal Operation,CONTROLLED,300,300,100.0,169.73,15.2,166.67,53,27945.0,1213.18,4.1917,8745.85,60,23,,,,,,
+Peak Congestion,BASELINE,350,350,100.0,201.34,0.0,266.67,157,30630.0,1357.6,4.5945,10897.41,75,101,,,,,,
+Peak Congestion,CONTROLLED,350,350,100.0,199.72,69.17,233.33,161,30510.0,1440.66,4.5765,11042.26,71,95,,,,,,
+Extreme Load,BASELINE,450,450,100.0,252.13,0.0,366.67,234,37890.0,1699.75,5.6835,13640.75,98,187,,,,,,
+Extreme Load,CONTROLLED,450,450,100.0,242.37,185.4,300.0,252,37590.0,2070.15,5.6385,13583.86,106,147,,,,,,
+Sensor / Network Failure,MANUAL FALLBACK,300,300,100.0,170.31,26.7,65.0,0,26715.0,1221.41,4.0072,8872.77,67,22,1111.0,,,,,
+Telemetry Tamper,HMAC + FALLBACK + S&F,300,300,100.0,169.02,60.3,200.0,123,25845.0,1299.8,3.8767,9360.94,83,66,,1450.0,1394.0,56.0,56.0,56.0

@@ -1,110 +1,68 @@
 # Project Status: Aisle Congestion Simulator and Wave-Release Controller
 
-**Academic Milestone:** Review 1 Evaluation / Working Simulation Prototype  
-**Maturity Status:** Approximately 40–42% Overall Prototype Maturity  
-**Target Milestone Date:** September 2026  
-**Department:** Computer Science & Engineering (Cyber Security)  
+**Academic Milestone:** Review 3 implementation in progress  
+**Project scope:** Review 3 is the 30% completion phase  
+**Base:** Existing Review 1/2 prototype; 120 workers / 350 orders / 12 aisles in the peak experiment configuration
 
 ---
 
-## 1. Current Stage
-**Review 1 / Early-Stage Working Simulation Prototype**
+## 1. Existing Review 2 foundation
 
-The project has transitioned beyond initial baseline demonstration (~35%) into a verified, multi-load experimental prototype (~40–42%). It implements core simulation engines, discrete-event queue gating, multi-scenario evaluation, dedicated hotspot analytics, threshold sensitivity analysis, and multi-seed statistical validation.
+The repository contains the synthetic warehouse data generator, discrete-event execution engine, congestion classification, ALLOW / DELAY / BLOCK controller, anti-starvation/error handling, visual-similarity-aware pick model, store-and-forward queue, dynamic aisle rerouting, KPI calculations, scenarios A–H, sensitivity analysis, and multi-seed validation functions.
 
-> [!NOTE]
-> This prototype is intentionally positioned as a functional research and evaluation prototype (~40–42% completion), not a final production software deployment.
+Review 2 feedback was accepted with full marks. Its three required improvements (visual-similarity dwell-time modelling, offline store-and-forward, and risk/stakeholder assumption documentation) remain part of the project baseline.
 
----
+## 2. Review 3 implementation on `review3-implementation`
 
-## 2. Estimated Project Maturity Breakdown
-- **Mathematical Modeling & Layout:** 100% of Review 1 scope complete.
-- **Wave-Release Controller Core:** 100% of Review 1 scope complete.
-- **Multi-Load Simulation Experiments:** 100% complete (Low, Normal, Peak, Extreme).
-- **Automated Unit & Boundary Testing:** 100% complete (23 passing automated tests).
-- **Statistical & Hotspot Validation:** 100% complete (5-seed evaluation, top-3 hotspot ranking).
-- **Dynamic Re-Routing & Intra-Aisle Deceleration:** 0% (Scoped for Review 2).
-- **Live IoT / Message Broker Integration:** 0% (Scoped for Review 2).
-- **Interactive UI Dashboard & Hardware:** 0% (Scoped for Review 3).
+- **Timestamped movement trace:** travel and pick segments record worker/order IDs, simulation start/end times, and grid coordinates. `WarehouseSimulation.get_movement_trace()` exposes the trace.
+- **Interactive 2D dashboard:** `dashboard/app.py` provides Normal / Peak / Extreme synthetic scenarios, wave-release control toggle, simulation-time scrubbing, worker markers, aisle occupancy/capacity, and order KPIs.
+- **HMAC telemetry integration:** signed simulated occupancy payloads are verified before they are trusted by the release controller. Signature, freshness, and replay checks are provided by `src/telemetry_security.py`. A rejected payload forces the existing manual fallback; the optional store-and-forward queue records the fallback decision.
+- **Tamper experiment:** `run_telemetry_tamper_scenario()` deliberately modifies a deterministic 10% subset of signed packets to exercise rejection, fallback, queueing, and replay.
+- **Reproducible experiment runner:** `run_review3_experiments.py` generates baseline/controlled, Normal/Peak/Extreme, sensor failure, telemetry tamper, sensitivity, and five-seed result CSVs.
+- **Automated test additions:** 2 movement-trace tests, 8 HMAC security tests, and 3 simulation/security integration tests.
+- **Stakeholder validation guide:** `docs/STAKEHOLDER_VALIDATION.md` contains a short walkthrough and blank feedback record. Real stakeholder validation is not yet conducted.
 
-**Overall Estimated Project Completion: ~40–42%**
+## 3. Test inventory and validation status
 
----
+Source inspection counts **62 existing test functions** (8 congestion + 8 controller + 7 simulation + 22 visual-similarity + 17 error-boundary) and **14 Review 3 additions** (2 movement trace + 8 telemetry security + 3 integration), for **76 test functions**.
 
-## 3. Fully Functioning Modules
+**Test result: PASS.** GitHub Actions run #54 executed the full suite on Python 3.11: **76 passed in 1.81 seconds**. The same run successfully executed `run_review3_experiments.py`, uploaded the generated artifacts, and smoke-tested dashboard startup (HTTP 200).
 
-| Module Path | Primary Responsibility | Maturity |
-| :--- | :--- | :---: |
-| [`src/data_generator.py`](file:///Users/ramyaramesh/Documents/coe_project/src/data_generator.py) | 2D coordinate grid (12 aisles, 3 zones), popularity hotspots, synthetic orders (120 workers, 350 orders), and Manhattan path generator. | **Working** |
-| [`src/congestion.py`](file:///Users/ramyaramesh/Documents/coe_project/src/congestion.py) | Dynamic worker density calculation with zero-division guards and 4-tier classification (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`). | **Working** |
-| [`src/controller.py`](file:///Users/ramyaramesh/Documents/coe_project/src/controller.py) | Closed-loop wave-release gating (`ALLOW`, `DELAY`, `BLOCK`), configurable safe threshold, and autonomous `MANUAL FALLBACK` pacing. | **Working** |
-| [`src/simulation.py`](file:///Users/ramyaramesh/Documents/coe_project/src/simulation.py) | Discrete-event execution engine supporting Baseline (unregulated) and Controlled wave dispatches with interval tracking. | **Working** |
-| [`src/metrics.py`](file:///Users/ramyaramesh/Documents/coe_project/src/metrics.py) | KPI analytics (throughput, wait time, cost, emissions), dedicated hotspot analysis, and programmatic comparative tables. | **Working** |
-| [`src/scenarios.py`](file:///Users/ramyaramesh/Documents/coe_project/src/scenarios.py) | Multi-load experimental pipeline (Low, Normal, Peak, Extreme), sensor failure handler, threshold sweeps, and 5-seed statistical validation. | **Working** |
-| [`run_experiments.py`](file:///Users/ramyaramesh/Documents/coe_project/run_experiments.py) | Master automation runner executing all experiments, generating CSV summaries, and saving 10 publication-quality figures to `results/`. | **Working** |
-| [`Aisle_Congestion_Simulator.ipynb`](file:///Users/ramyaramesh/Documents/coe_project/Aisle_Congestion_Simulator.ipynb) | 22-section interactive master notebook executable from top to bottom with zero manual intervention. | **Working** |
+## 3A. Review 3 experiment results (GitHub Actions run #54)
 
----
+The Review 3 experiment runner completed successfully and its summary/sensitivity/multi-seed CSVs are committed under `results/`. The full telemetry audit and controller logs are available in the CI artifact for [run #54](https://github.com/ramyaramesh2006/coe_project/actions/runs/45189372797).
 
-## 4. Empirical Validation Evidence
+- Peak baseline vs controlled throughput: 201.34 vs 199.72 orders/hr (−0.80%).
+- Peak maximum congestion: 266.67% vs 233.33%; controlled remains above the 75% target.
+- Extreme baseline vs controlled throughput: 252.13 vs 242.37 orders/hr (−3.87%).
+- Extreme maximum congestion: 366.67% vs 300%; controlled remains above the 75% target.
+- Telemetry tamper scenario: 1,450 packets checked, 1,394 accepted, 56 rejected; 56 fallback decisions queued and replayed.
+- All scenario runs reported 100% simulated order completion, which is not a real-world uptime/safety measure.
 
-### A. Synthetic Dataset
-- File: [`data/warehouse_simulation_data.csv`](file:///Users/ramyaramesh/Documents/coe_project/data/warehouse_simulation_data.csv)
-- Scope: 120 workers, 350 orders, 990 pick records, 12 aisles across 3 zones. Non-uniform popularity heavily weights fast-moving automotive parts in Aisles A03 (22%) and A07 (20%).
+**Objective status:** The experiments show some congestion reductions, but the strict goal of increased throughput while keeping global maximum congestion at or below 75% is not achieved in peak/extreme loads. This limitation is recorded in the Review 3 report.
 
-### B. Multi-Load Experimental Conditions
-- File: [`results/multi_scenario_comparison.csv`](file:///Users/ramyaramesh/Documents/coe_project/results/multi_scenario_comparison.csv)
-- Conditions evaluated:
-  - **Scenario A (Low Load):** 180 orders, 60 workers $\implies$ 103.43 orders/hr, 0.17s avg wait, 16 critical events.
-  - **Scenario B (Normal Load):** 300 orders, 100 workers $\implies$ 172.05 orders/hr, 2.10s avg wait, 47 critical events.
-  - **Scenario C (Peak Load):** 350 orders, 120 workers, 2.8x multiplier $\implies$ Baseline: 138 critical events vs Controlled: 132 critical events (4.35% reduction, 7.29s avg wait, 200.83 orders/hr).
-  - **Scenario D (Extreme Load):** 450 orders, 150 workers, 3.5x multiplier $\implies$ 255.96 orders/hr, 17.00s avg wait, 184 critical events.
+## 4. Reproducible validation commands
 
-### C. Dedicated Hotspot Analysis
-- File: [`results/hotspot_analysis.csv`](file:///Users/ramyaramesh/Documents/coe_project/results/hotspot_analysis.csv)
-- Top 3 Congested Aisles:
-  1. **A03 (Zone A Fast Moving):** Mean Congestion 65.88%, Max 266.67%, 70 Critical Events.
-  2. **A07 (Zone B Engine Parts):** Mean Congestion 62.74%, Max 233.33%, 66 Critical Events.
-  3. **A02 (Zone A Fast Moving):** Mean Congestion 12.26%, Max 100.00%, 2 Critical Events.
+From the repository root:
 
-### D. Multi-Seed Statistical Stability (5 Seeds: 42, 101, 202, 303, 404)
-- File: [`results/multirun_validation.csv`](file:///Users/ramyaramesh/Documents/coe_project/results/multirun_validation.csv)
-- Baseline Critical Events: $123.00 \pm 9.12$
-- Controlled Critical Events: $121.80 \pm 6.55$
-- Controlled Average Waiting: $8.14 \pm 1.26$ seconds
-- Delayed Orders: $62.80 \pm 5.88$ orders
-- Controlled Throughput: $198.47 \pm 1.37$ orders/hour
+```bash
+python -m pytest tests/ -v
+python run_review3_experiments.py
+pip install -r requirements-dashboard.txt
+streamlit run dashboard/app.py
+```
 
-### E. Automated Test Suite
-- Executed via `pytest tests/ -v`:
-- **23 automated tests passing** (100% success rate), covering calculation guardrails, classification tiers, boundary conditions ($74.9\%, 75.0\%, 75.1\%, 100.0\%$), sensor blackout fallbacks, distance geometry, multi-load scenarios, and multi-seed statistics.
+The experiment runner writes generated outputs under `results/`, including a KPI summary, telemetry audit, controller log, sensitivity sweep, and multi-seed outputs. These values must be generated by running the script; none are pre-filled in the report.
 
-### F. Analytical Visualizations (in `results/`)
-1. `fig1_congestion_by_scenario.png`: Peak congestion across Low, Normal, Peak, Extreme loads.
-2. `fig2_critical_events_by_scenario.png`: Critical bottleneck events across loads.
-3. `fig3_throughput_comparison.png`: Warehouse fulfillment throughput.
-4. `fig4_waiting_time_comparison.png`: Average staging delay comparison.
-5. `fig5_baseline_vs_controlled.png`: Comparative analysis of key peak metrics.
-6. `fig6_hotspot_aisle_analysis.png`: Top-congested aisles profile.
-7. `fig7_threshold_sensitivity.png`: Safe threshold trade-off curve.
-8. `fig8_controller_decisions_distribution.png`: ALLOW vs DELAY vs BLOCK across thresholds.
-9. `fig9_worker_load_vs_congestion.png`: Dynamic time-series of A03 congestion.
-10. `fig10_multirun_variability.png`: Error bars showing mean $\pm$ std across seeds.
+## 5. Remaining work / limitations
 
----
+1. Run and fix the full test suite; confirm the GitHub Actions result.
+2. Execute the Review 3 experiment runner and populate the report with actual generated values.
+3. Confirm whether the controlled mode increases throughput while keeping measured congestion under the agreed safe limit; explain any failure to meet the target.
+4. Complete a real stakeholder walkthrough and record anonymous feedback in `docs/STAKEHOLDER_VALIDATION.md`.
+5. Physical pilot, badge-gate enforcement, live MQTT/device integration, secure key provisioning/rotation, TLS, AGV/MAPF, microscopic crowd dynamics, ML wave batching, and full lifecycle emissions accounting are not implemented.
+6. The dashboard and HMAC scenario use synthetic simulation data. HMAC uses a fixed simulation-only test key in the deterministic scenario and is not production key management.
 
-## 5. Not Yet Implemented (Future Roadmap)
+## 6. Branch and review status
 
-The following capabilities are deliberately scoped for subsequent reviews:
-
-### Review 2 Target (~70% Completion):
-- **Dynamic Re-Routing:** Real-time graph routing (A* / Dijkstra) diverting workers around downstream aisles that jam during active order picking.
-- **Intra-Aisle Slowdown Dynamics:** Microscopic deceleration curves when multiple picker carts pass inside a narrow aisle.
-- **Asynchronous Telemetry Stream:** Simulating IoT sensor packet streams via an MQTT / Kafka pub-sub broker.
-- **Cyber-Security Adversarial Modeling:** Simulating sensor spoofing attacks (false zero-congestion injection) and developing cryptographic signature verification.
-
-### Review 3 Target (Final Capstone Prototype):
-- **Interactive Floor Dashboard:** Real-time 2D animated browser interface (Streamlit / Dash).
-- **Heuristic / ML Wave Batching:** Machine-learning predictive order arrival clustering.
-- **AGV Integration:** Automated Guided Vehicle path conflict resolution (Multi-Agent Path Finding - MAPF).
-- **Physical Pilot Validation:** Benchmarking against automotive parts warehouse operational logs.
+All Review 3 changes are on `review3-implementation` and are proposed in draft PR #1. The `main` branch has not been merged or replaced. Keep the PR in draft until tests, experiments, and stakeholder validation are reviewed.

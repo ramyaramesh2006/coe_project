@@ -45,7 +45,7 @@
 | 5 | R-005 | **Safety** | Worker congestion in narrow aisles (capacity 3) causes physical collision risk between pickers | 3 | 5 | **15** | HIGH | CRITICAL congestion classification (≥100%) triggers immediate BLOCK decision; physically modelled capacity constraints | 7 | Safety Officer |
 | 6 | R-006 | **Domain** | Hotspot aisles (A03, A07) permanently saturated due to structural demand skew despite controller action | 4 | 3 | **12** | HIGH | Dynamic rerouting (Scenario H) diverts workers around >90% congested aisles; demand redistributed via wave scheduling | 6 | Warehouse Mgr |
 | 7 | R-007 | **Data** | Synthetic dataset does not faithfully represent real automotive parts demand patterns | 3 | 3 | **9** | MEDIUM | Peak multiplier (2.8×) calibrated against industry benchmarks; 5-seed Monte Carlo validation confirms statistical stability (σ < 5%) | 6 | Data Team |
-| 8 | R-008 | **Technical** | Sensor spoofing attack injects false zero-congestion readings causing uncontrolled worker release | 2 | 5 | **10** | HIGH | Cryptographic sensor verification planned for Review 3; current mitigation: range-check anomaly detection (congestion drop > 30% in 1 step flagged) | 7 | Cyber Security |
+| 8 | R-008 | **Technical** | Sensor spoofing attack injects false zero-congestion readings causing uncontrolled worker release | 2 | 5 | **10** | HIGH | Review 3 adds HMAC-SHA256 signature, freshness, and nonce replay verification in the simulation sensor path; invalid packets force MANUAL FALLBACK and can be queued. Residual risks: key provisioning/rotation, device identity, TLS, broker/MQTT integration, and penetration testing remain open. | 7 | Cyber Security |
 | 9 | R-009 | **Operational** | Worker path reordering (dynamic rerouting) increases total travel distance, raising costs and emissions | 3 | 2 | **6** | MEDIUM | A* nearest-neighbour heuristic minimises distance increase; rerouting only triggered at ≥90% congestion threshold | 4 | Operations |
 | 10 | R-010 | **Project** | Simulation model diverges from physical warehouse (centroid coordinates, constant walking speed) | 3 | 3 | **9** | MEDIUM | Documented as known limitation; future work: microscopic crowd dynamics, variable speed model, real warehouse telemetry calibration | 6 | Research Lead |
 | 11 | R-011 | **Compliance** | Emissions accounting model underestimates carbon footprint (omits HVAC, lighting loads) | 2 | 2 | **4** | LOW | Current model: 0.00015 kg CO₂e/m battery-electric cart only; documented scope limitation; full LCA planned for Review 3 | 3 | Sustainability |
@@ -79,8 +79,8 @@ Impact
 | Per simulation run | Check `critical_events_count` stays below baseline; alert if > 150 |
 | Per Review cycle | Re-score all risks based on new prototype capabilities |
 | Post-outage simulation | Verify S&F queue drains cleanly; replay reconciliation rate ≥ 95% |
-| Before Review 3 | Implement cryptographic sensor verification (R-008); microscopic crowd dynamics (R-010) |
+| Review 3 implementation | HMAC telemetry verification integrated in the simulation path (R-008 mitigation); microscopic crowd dynamics (R-010) remain open and require later physical-data calibration |
 
 ---
 
-*Document version: 2.0 — Review 2 Edition*
+*Document version: 3.0 — Review 3 implementation update; residual risks remain open*
