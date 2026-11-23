@@ -3,7 +3,7 @@
 **Document:** Test Strategy, Coverage Rationale, and Execution Guide
 **Review Stage:** Review 3 implementation (75 tests passed; experiment/dashboard checks pending)
 **Existing Review 2 Tests:** 62 test functions in source  
-**New Review 3 Tests:** 13 added; total 75 passed in GitHub Actions run #31
+**New Review 3 Tests:** 14 added; total 76 passed in GitHub Actions run #54
 
 ---
 
