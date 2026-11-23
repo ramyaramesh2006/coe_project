@@ -191,7 +191,7 @@ The following defensive cases are covered by code and tests:
 5. **Sensor/network outage:** the existing manual fallback and store-and-forward queue handle missing telemetry and replay decisions after reconnection.
 6. **Invalid key/signature:** empty keys, wrong keys, and invalid signatures are rejected or raise the documented validation error.
 
-The automated tests have been added for these cases. Their source count is reported below, but execution is still pending.
+The automated tests cover these cases. GitHub Actions run #31 executed the complete 75-test suite, including the new telemetry security and integration tests, and reported 75 passed in 3.19 seconds.
 
 ## 7. Experiments, targets, and error analysis
 
@@ -231,7 +231,7 @@ These are values recorded in the Review 2 report, not newly measured Review 3 re
 | Cost | Report labour, travel, delay, and mispick cost trade-offs | Pending experiment execution | Pending |
 | Emissions | Report modelled CO₂e difference | Pending experiment execution | Pending |
 | Reliability | Report completed/requested orders and failure recovery | Pending experiment execution | Pending |
-| Security | Tampered packets rejected and fallback invoked | Covered by integration test source; execution pending | Not yet verified by run |
+| Security | Tampered packets rejected and fallback invoked | Integrated telemetry tests passed in CI run #31 | Verified by automated test; experiment metrics pending |
 
 The 75% value is the configured safe release threshold used by the current experiment setup. It must not be confused with a guarantee that every sampled aisle congestion value remains below 75%; the actual maximum must be read from the generated result.
 
@@ -312,7 +312,7 @@ Generated Review 3 CSV and JSON evidence is written under `results/`. Review tho
 
 ## 11. Remaining work before final submission
 
-1. Run all 75 expected tests and fix any failures; attach the actual terminal/CI result.
+1. Keep the 75-test suite passing; GitHub Actions run #31 already reports 75 passed in 3.19 seconds. Review the subsequent expanded CI run for regressions.
 2. Run `run_review3_experiments.py`; use generated CSVs to populate the measured-result table and error analysis.
 3. Check whether throughput increases and measured congestion stays within the agreed safe limit. If either target is missed, report it and explain the trade-off rather than changing the numbers.
 4. Launch the dashboard and capture genuine screenshots.
@@ -324,4 +324,4 @@ Generated Review 3 CSV and JSON evidence is written under `results/`. Review tho
 
 Review 3 adds a timestamped worker movement trace, an interactive 2D simulation dashboard, HMAC-authenticated telemetry integrated into the controller path, a tamper/fallback/store-and-forward experiment, and a reproducible experiment runner. It also adds movement, security, and integration tests and updates the repository documentation and risk record.
 
-The implementation is on a separate branch and preserves the existing Review 1/2 project foundation. However, the full Review 3 evidence is not yet complete: tests and experiments have not been executed in the current environment, the dashboard has not been browser-verified, and stakeholder validation is pending. The next submission should include the generated measurements and real validation evidence rather than treating source-code additions as proof of successful results.
+The implementation is on a separate branch and preserves the existing Review 1/2 project foundation. The 75-test suite has passed in GitHub Actions run #31. The full Review 3 evidence is not yet complete: generated experiment measurements and the expanded dashboard smoke test are pending run #33, the dashboard has not yet been manually browser-reviewed, and stakeholder validation is pending. The next submission should include generated measurements and real validation evidence rather than treating source-code additions alone as proof of successful results.
