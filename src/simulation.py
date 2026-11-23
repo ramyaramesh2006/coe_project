@@ -244,38 +244,46 @@ class WarehouseSimulation:
             delay_count = 0
 
             # ── Wave-release controller ──────────────────────────────────────
+            first_coord = self.aisles_def[path[0]]["grid"]
+            depot_travel_m = (abs(first_coord[0]) + abs(first_coord[1])) * 15.0
+            depot_travel_seconds = depot_travel_m / self.walking_speed
+
             if self.controlled:
                 max_retries = 20
                 for attempt in range(max_retries):
-                    current_online = self._resolve_sensor_available(actual_release_time)
-
+                    # Gate against occupancy projected at the worker's estimated aisle arrival,
+                    # not the earlier order-request timestamp.
+                    decision_time = actual_release_time + depot_travel_seconds
+                    current_online = self._resolve_sensor_available(decision_time)
                     current_workers = self._get_current_workers_in_aisle(
-                        target_first_aisle, actual_release_time
+                        target_first_aisle, decision_time
                     )
+                    projected_congestion = (
+                        (current_workers + 1) / max(1, aisle_cap)
+                    ) * 100.0
 
                     # Verify simulated occupancy telemetry before trusting it for release control.
-                    # A failed signature/freshness/replay check forces the existing manual fallback.
                     if current_online and self.telemetry_authenticator is not None:
                         telemetry_payload = {
                             "aisle_id": target_first_aisle,
                             "current_workers": int(current_workers),
                             "capacity": int(aisle_cap),
                         }
-                        nonce = f"{order_id}:{attempt}"
+                        nonce = f"{order_id}:0:{attempt}"
                         packet = self.telemetry_authenticator.create_packet(
                             telemetry_payload,
-                            timestamp=float(actual_release_time),
+                            timestamp=float(decision_time),
                             nonce=nonce,
                         )
                         if order_id in self.telemetry_tamper_order_ids:
                             packet["payload"]["current_workers"] = int(current_workers) + 1
 
                         accepted, verification_reason = self.telemetry_authenticator.verify_packet(
-                            packet, now=float(actual_release_time)
+                            packet, now=float(decision_time)
                         )
                         telemetry_event = {
                             "order_id": order_id,
-                            "timestamp": float(actual_release_time),
+                            "timestamp": float(decision_time),
                             "aisle_id": target_first_aisle,
                             "accepted": bool(accepted),
                             "reason": verification_reason,
@@ -285,10 +293,10 @@ class WarehouseSimulation:
                             self.telemetry_rejections.append(telemetry_event)
                             current_online = False
 
-                    self._handle_store_and_forward_transition(actual_release_time, current_online)
+                    self._handle_store_and_forward_transition(decision_time, current_online)
 
                     ctrl_decision = wave_release_controller(
-                        congestion_percentage=None,
+                        congestion_percentage=projected_congestion,
                         requested_workers=1,
                         safe_threshold=self.safe_threshold,
                         aisle_capacity=aisle_cap,
@@ -297,14 +305,14 @@ class WarehouseSimulation:
                         fallback_congestion=self.fallback_congestion,
                     )
                     ctrl_decision["order_id"] = order_id
-                    ctrl_decision["timestamp"] = actual_release_time
+                    ctrl_decision["timestamp"] = decision_time
                     ctrl_decision["target_aisle"] = target_first_aisle
                     self.controller_logs.append(ctrl_decision)
 
                     # If offline: enqueue to S&F
                     if self.saf_queue is not None and not current_online:
                         self.saf_queue.enqueue(
-                            sim_timestamp=actual_release_time,
+                            sim_timestamp=decision_time,
                             order_id=order_id,
                             target_aisle=target_first_aisle,
                             controller_result=ctrl_decision,
@@ -313,17 +321,13 @@ class WarehouseSimulation:
 
                     if ctrl_decision["decision"] == "ALLOW":
                         break
-                    else:
-                        actual_release_time += self.retry_delay_seconds
-                        delay_count += 1
+                    actual_release_time += self.retry_delay_seconds
+                    delay_count += 1
 
             waiting_time = max(0.0, actual_release_time - req_time)
 
             # ── Traverse path ────────────────────────────────────────────────
             current_time = actual_release_time
-            first_coord = self.aisles_def[path[0]]["grid"]
-            depot_travel_m = (abs(first_coord[0]) + abs(first_coord[1])) * 15.0
-            depot_travel_seconds = depot_travel_m / self.walking_speed
             first_x, first_y = self.aisles_def[path[0]]["grid"]
             self.movement_trace.append({
                 "worker_id": worker_id, "order_id": order_id, "event": "TRAVEL",
@@ -369,6 +373,73 @@ class WarehouseSimulation:
             actual_travel_distance += depot_travel_m
 
             for step, aisle in enumerate(effective_path):
+                # Every downstream aisle also uses projected-occupancy admission control.
+                if self.controlled and step > 0:
+                    aisle_cap = self.aisles_def[aisle]["capacity"]
+                    for attempt in range(20):
+                        current_online = self._resolve_sensor_available(current_time)
+                        current_workers = self._get_current_workers_in_aisle(aisle, current_time)
+                        projected_congestion = (
+                            (current_workers + 1) / max(1, aisle_cap)
+                        ) * 100.0
+
+                        if current_online and self.telemetry_authenticator is not None:
+                            telemetry_payload = {
+                                "aisle_id": aisle,
+                                "current_workers": int(current_workers),
+                                "capacity": int(aisle_cap),
+                            }
+                            nonce = f"{order_id}:{step}:{attempt}"
+                            packet = self.telemetry_authenticator.create_packet(
+                                telemetry_payload,
+                                timestamp=float(current_time),
+                                nonce=nonce,
+                            )
+                            accepted, verification_reason = self.telemetry_authenticator.verify_packet(
+                                packet, now=float(current_time)
+                            )
+                            telemetry_event = {
+                                "order_id": order_id,
+                                "timestamp": float(current_time),
+                                "aisle_id": aisle,
+                                "accepted": bool(accepted),
+                                "reason": verification_reason,
+                            }
+                            self.telemetry_logs.append(telemetry_event)
+                            if not accepted:
+                                self.telemetry_rejections.append(telemetry_event)
+                                current_online = False
+
+                        self._handle_store_and_forward_transition(current_time, current_online)
+                        ctrl_decision = wave_release_controller(
+                            congestion_percentage=projected_congestion,
+                            requested_workers=1,
+                            safe_threshold=self.safe_threshold,
+                            aisle_capacity=aisle_cap,
+                            current_workers=current_workers,
+                            sensor_available=current_online,
+                            fallback_congestion=self.fallback_congestion,
+                        )
+                        ctrl_decision["order_id"] = order_id
+                        ctrl_decision["timestamp"] = current_time
+                        ctrl_decision["target_aisle"] = aisle
+                        self.controller_logs.append(ctrl_decision)
+
+                        if self.saf_queue is not None and not current_online:
+                            self.saf_queue.enqueue(
+                                sim_timestamp=current_time,
+                                order_id=order_id,
+                                target_aisle=aisle,
+                                controller_result=ctrl_decision,
+                                fallback_congestion=self.fallback_congestion,
+                            )
+
+                        if ctrl_decision["decision"] == "ALLOW":
+                            break
+                        current_time += self.retry_delay_seconds
+                        waiting_time += self.retry_delay_seconds
+                        delay_count += 1
+
                 entry_time = current_time
 
                 # Pick time: standard or visual-similarity-aware
