@@ -165,54 +165,47 @@ Scenarios A–H: 8 operating conditions
 
 ```
 coe_project/
-├── Aisle_Congestion_Simulator.ipynb      # Interactive Jupyter Notebook
-├── README.md                             # This file
-├── requirements.txt                      # Core dependencies
-├── requirements-dashboard.txt             # Optional Streamlit/Plotly dependencies
+├── Aisle_Congestion_Simulator.ipynb
+├── README.md
+├── requirements.txt
+├── requirements-dashboard.txt
+├── run_experiments.py
+├── run_review3_experiments.py
 ├── dashboard/
-│   └── app.py                              # Review 3 interactive 2D floor dashboard
-├── requirements-dashboard.txt             # Optional Streamlit/Plotly dependencies
-├── dashboard/
-│   └── app.py                              # Review 3 interactive 2D floor dashboard
-├── run_experiments.py                    # Existing Review 1/2 experiment runner\n├── run_review3_experiments.py            # Review 3 scenario, sensitivity, multi-seed runner
-├── build_notebook.py                     # Notebook generator
+│   └── app.py
 ├── data/
-│   └── warehouse_simulation_data.csv     # Synthetic dataset
 ├── src/
-│   ├── __init__.py                       # Package init (v0.2.0)
-│   ├── data_generator.py                 # Grid layout + synthetic data
-│   ├── congestion.py                     # Congestion engine
-│   ├── controller.py                     # Wave-release controller
-│   ├── simulation.py                     # Discrete-event engine (Rev 2)
-│   ├── visual_similarity.py              # ★ NEW: Part catalogue + pick model
-│   ├── store_and_forward.py              # ★ NEW: S&F queue + network monitor
-│   ├── telemetry_security.py             # Review 3 HMAC telemetry checks
-│   ├── metrics.py                        # KPIs (+ mispick cost, Rev 2)
-│   └── scenarios.py                      # 8 scenarios (A–H, Rev 2)
+│   ├── data_generator.py
+│   ├── congestion.py
+│   ├── controller.py
+│   ├── simulation.py
+│   ├── visual_similarity.py
+│   ├── store_and_forward.py
+│   ├── telemetry_security.py
+│   ├── metrics.py
+│   └── scenarios.py
 ├── tests/
-│   ├── __init__.py
-│   ├── test_congestion.py                # 8 tests
-│   ├── test_controller.py                # 8 tests
-│   ├── test_simulation.py                # 7 tests
-│   └── test_visual_similarity.py         # ★ NEW: 22 tests (Rev 2)
+│   ├── test_congestion.py
+│   ├── test_controller.py
+│   ├── test_simulation.py
+│   ├── test_visual_similarity.py
+│   ├── test_error_boundaries.py
+│   ├── test_movement_trace.py
+│   ├── test_telemetry_security.py
+│   └── test_telemetry_integration.py
 ├── results/
-│   ├── multi_scenario_comparison.csv
-│   ├── hotspot_analysis.csv
-│   ├── baseline_vs_controlled.csv
-│   ├── sensitivity_analysis.csv
-│   ├── multirun_validation.csv
-│   ├── store_forward_spool.csv           # ★ NEW: S&F audit trail
-│   └── fig1_*.png to fig10_*.png
 └── docs/
     ├── Review_1_Report.md
-    ├── Review_2_Report.md                # ★ NEW
-    ├── RISK_REGISTER.md                  # ★ NEW: 14-entry formal risk register
-    ├── STAKEHOLDER_ASSUMPTIONS.md        # ★ NEW: 22 formalised assumptions
-    └── PROJECT_STATUS.md
+    ├── Review_2_Report.md
+    ├── PROJECT_STATUS.md
+    ├── PROJECT_STATUS.md
+    ├── RISK_REGISTER.md
+    ├── STAKEHOLDER_ASSUMPTIONS.md
+    └── STAKEHOLDER_VALIDATION.md
 ```
 
 ---
-
+ 
 ## How to Run
 
 1. **Create Environment & Install Dependencies:**
@@ -264,7 +257,8 @@ The Review 2 source suite contains 62 test functions (8 congestion, 8 controller
 | `test_visual_similarity.py` | 22 | Part catalogue, pick model, S&F, rerouting |
 | `test_error_boundaries.py` | 17 | Defensive and error-boundary tests |
 | `test_movement_trace.py` | 2 | Timestamped worker movement segments |
-| `test_telemetry_security.py` | 8 | HMAC, tamper, freshness, replay checks |\n| `test_telemetry_integration.py` | 3 | Authenticated sensor data, fallback, S&F integration |
+| `test_telemetry_security.py` | 8 | HMAC, tamper, freshness, replay checks |
+| `test_telemetry_integration.py` | 3 | Authenticated sensor data, fallback, S&F integration |
 
 ## Documentation
 
