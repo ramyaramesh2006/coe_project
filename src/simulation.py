@@ -145,6 +145,8 @@ class WarehouseSimulation:
         }
         self.controller_logs: List[Dict[str, Any]] = []
         self.reroute_events: List[Dict[str, Any]] = []
+        # Review 3: timestamped worker movement/pick segments for the 2D dashboard.
+        self.movement_trace: List[Dict[str, Any]] = []
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -275,7 +277,16 @@ class WarehouseSimulation:
             current_time = actual_release_time
             first_coord = self.aisles_def[path[0]]["grid"]
             depot_travel_m = (abs(first_coord[0]) + abs(first_coord[1])) * 15.0
-            current_time += depot_travel_m / self.walking_speed
+            depot_travel_seconds = depot_travel_m / self.walking_speed
+            first_x, first_y = self.aisles_def[path[0]]["grid"]
+            self.movement_trace.append({
+                "worker_id": worker_id, "order_id": order_id, "event": "TRAVEL",
+                "aisle_id": path[0], "start_time": actual_release_time,
+                "end_time": actual_release_time + depot_travel_seconds,
+                "start_x": 0.0, "start_y": 0.0,
+                "end_x": float(first_x), "end_y": float(first_y),
+            })
+            current_time += depot_travel_seconds
 
             # Dynamic rerouting: reorder remaining aisles if downstream congested
             effective_path = list(path)
@@ -326,12 +337,29 @@ class WarehouseSimulation:
 
                 exit_time = entry_time + p_time
                 self.aisle_intervals[aisle].append((entry_time, exit_time, worker_id))
+                aisle_x, aisle_y = self.aisles_def[aisle]["grid"]
+                self.movement_trace.append({
+                    "worker_id": worker_id, "order_id": order_id, "event": "PICK",
+                    "aisle_id": aisle, "start_time": entry_time, "end_time": exit_time,
+                    "start_x": float(aisle_x), "start_y": float(aisle_y),
+                    "end_x": float(aisle_x), "end_y": float(aisle_y),
+                })
                 current_time = exit_time
 
                 if step < len(effective_path) - 1:
-                    leg_dist = calculate_grid_distance(aisle, effective_path[step + 1], self.aisles_def)
+                    next_aisle = effective_path[step + 1]
+                    leg_dist = calculate_grid_distance(aisle, next_aisle, self.aisles_def)
                     actual_travel_distance += leg_dist
-                    current_time += leg_dist / self.walking_speed
+                    next_x, next_y = self.aisles_def[next_aisle]["grid"]
+                    travel_seconds = leg_dist / self.walking_speed
+                    self.movement_trace.append({
+                        "worker_id": worker_id, "order_id": order_id, "event": "TRAVEL",
+                        "aisle_id": next_aisle, "start_time": current_time,
+                        "end_time": current_time + travel_seconds,
+                        "start_x": float(aisle_x), "start_y": float(aisle_y),
+                        "end_x": float(next_x), "end_y": float(next_y),
+                    })
+                    current_time += travel_seconds
 
             completion_time = current_time
 
@@ -383,6 +411,10 @@ class WarehouseSimulation:
             records.append(row)
 
         return pd.DataFrame(records)
+
+    def get_movement_trace(self) -> pd.DataFrame:
+        """Return timestamped worker travel and pick segments for visualization."""
+        return pd.DataFrame(self.movement_trace)
 
     def get_store_and_forward_summary(self) -> Optional[Dict[str, Any]]:
         """Returns the S&F queue summary if store-and-forward is enabled."""
