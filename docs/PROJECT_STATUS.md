@@ -1,50 +1,55 @@
 # Project Status: Aisle Congestion Simulator and Wave-Release Controller
 
 **Academic Milestone:** Review 3 implementation in progress  
-**Department:** Computer Science & Engineering (Cyber Security)  
-**Base:** Review 2 prototype (scenarios A–H)
+**Project scope:** Review 3 is the 30% completion phase  
+**Base:** Existing Review 1/2 prototype; 120 workers / 350 orders / 12 aisles in the peak experiment configuration
 
 ---
 
-## 1. Current implementation
+## 1. Existing Review 2 foundation
 
-The Review 2 baseline contains a discrete-event warehouse simulation, wave-release controller, congestion metrics, visual-similarity-aware pick model, store-and-forward offline queue, and dynamic aisle rerouting.
+The repository contains the synthetic warehouse data generator, discrete-event execution engine, congestion classification, ALLOW / DELAY / BLOCK controller, anti-starvation/error handling, visual-similarity-aware pick model, store-and-forward queue, dynamic aisle rerouting, KPI calculations, scenarios A–H, sensitivity analysis, and multi-seed validation functions.
 
-Review 3 work on branch `review3-implementation` currently adds:
+Review 2 feedback was accepted with full marks. Its three required improvements (visual-similarity dwell-time modelling, offline store-and-forward, and risk/stakeholder assumption documentation) remain part of the project baseline.
 
-- **Worker movement trace:** timestamped `TRAVEL` and `PICK` segments with worker/order IDs and grid coordinates, exposed by `WarehouseSimulation.get_movement_trace()`.
-- **Interactive 2D dashboard:** `dashboard/app.py`, built with Streamlit and Plotly. It displays a synthetic floor layout, worker positions, aisle congestion/capacity, and order metrics for Normal, Peak, and Extreme scenarios.
-- **Telemetry integrity component:** `src/telemetry_security.py` uses HMAC-SHA256, constant-time comparison, timestamp freshness, and nonce-based replay detection.
-- **Automated test workflow:** `.github/workflows/tests.yml` runs the pytest suite on the Review 3 branch and pull requests to main.
-- **Review 3 tests:** two movement-trace tests and eight telemetry-security tests have been added.
+## 2. Review 3 implementation on `review3-implementation`
 
-These additions are on the Review 3 development branch and are not merged into `main`.
+- **Timestamped movement trace:** travel and pick segments record worker/order IDs, simulation start/end times, and grid coordinates. `WarehouseSimulation.get_movement_trace()` exposes the trace.
+- **Interactive 2D dashboard:** `dashboard/app.py` provides Normal / Peak / Extreme synthetic scenarios, wave-release control toggle, simulation-time scrubbing, worker markers, aisle occupancy/capacity, and order KPIs.
+- **HMAC telemetry integration:** signed simulated occupancy payloads are verified before they are trusted by the release controller. Signature, freshness, and replay checks are provided by `src/telemetry_security.py`. A rejected payload forces the existing manual fallback; the optional store-and-forward queue records the fallback decision.
+- **Tamper experiment:** `run_telemetry_tamper_scenario()` deliberately modifies a deterministic 10% subset of signed packets to exercise rejection, fallback, queueing, and replay.
+- **Reproducible experiment runner:** `run_review3_experiments.py` generates baseline/controlled, Normal/Peak/Extreme, sensor failure, telemetry tamper, sensitivity, and five-seed result CSVs.
+- **Automated test additions:** 2 movement-trace tests, 8 HMAC security tests, and 3 simulation/security integration tests.
+- **Stakeholder validation guide:** `docs/STAKEHOLDER_VALIDATION.md` contains a short walkthrough and blank feedback record. Real stakeholder validation is not yet conducted.
 
-## 2. Validation status
+## 3. Test inventory and validation status
 
-- The existing Review 2 test guide lists 58 tests.
-- Review 3 adds 10 tests, making 68 the expected suite count.
-- **Review 3 CI status: pending confirmation.** The expected count is not a claim that all tests pass.
-- Dashboard execution has not yet been verified in a live browser session.
+Source inspection counts **62 existing test functions** (8 congestion + 8 controller + 7 simulation + 22 visual-similarity + 17 error-boundary) and **13 Review 3 additions** (2 movement trace + 8 telemetry security + 3 integration), for **75 expected test functions**.
 
-Run locally from the repository root:
+**Execution status: not yet verified.** The environment used for this repository update could not clone GitHub because DNS/network access to github.com was unavailable, and no completed GitHub Actions run was returned. Therefore 75 is a source-count, not a passing-test result. Run `python -m pytest tests/ -v` locally or confirm the PR CI result before merging.
+
+## 4. Reproducible validation commands
+
+From the repository root:
 
 ```bash
 python -m pytest tests/ -v
+python run_review3_experiments.py
 pip install -r requirements-dashboard.txt
 streamlit run dashboard/app.py
 ```
 
-## 3. Remaining Review 3 work
+The experiment runner writes generated outputs under `results/`, including a KPI summary, telemetry audit, controller log, sensitivity sweep, and multi-seed outputs. These values must be generated by running the script; none are pre-filled in the report.
 
-1. Confirm CI results and fix any failing tests.
-2. Connect signed telemetry verification to a simulated sensor-data path and add a spoof/tamper experiment.
-3. Add a repeatable baseline-versus-controlled experiment report with sensitivity, cost, time, emissions, and reliability comparisons.
-4. Add at least three clearly documented failure/edge scenarios and quantify fallback behaviour.
-5. Conduct and record short stakeholder/user validation; do not invent participant feedback.
-6. Evaluate whether ML wave batching and AGV/MAPF integration are required by the final Review 3 rubric; they are not implemented in this branch yet.
-7. Update screenshots, results, limitations, and final report from actual runs.
+## 5. Remaining work / limitations
 
-## 4. Scope and limitations
+1. Run and fix the full test suite; confirm the GitHub Actions result.
+2. Execute the Review 3 experiment runner and populate the report with actual generated values.
+3. Confirm whether the controlled mode increases throughput while keeping measured congestion under the agreed safe limit; explain any failure to meet the target.
+4. Complete a real stakeholder walkthrough and record anonymous feedback in `docs/STAKEHOLDER_VALIDATION.md`.
+5. Physical pilot, badge-gate enforcement, live MQTT/device integration, secure key provisioning/rotation, TLS, AGV/MAPF, microscopic crowd dynamics, ML wave batching, and full lifecycle emissions accounting are not implemented.
+6. The dashboard and HMAC scenario use synthetic simulation data. HMAC uses a fixed simulation-only test key in the deterministic scenario and is not production key management.
 
-The dashboard uses synthetic simulation data. It is not a live warehouse deployment, does not connect to MQTT sensors or physical badge gates, and does not provide real AGV control. HMAC is currently a reusable simulation-layer security component; production use would also require TLS, authenticated device identity, secure key provisioning/rotation, and operational monitoring.
+## 6. Branch and review status
+
+All Review 3 changes are on `review3-implementation` and are proposed in draft PR #1. The `main` branch has not been merged or replaced. Keep the PR in draft until tests, experiments, and stakeholder validation are reviewed.
