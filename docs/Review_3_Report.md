@@ -273,7 +273,7 @@ Required validation command:
 python -m pytest tests/ -v
 ```
 
-The optional dashboard also needs a live launch check. The GitHub Actions workflow is configured to run pytest, but the PR currently has no confirmed completed CI result.
+The optional dashboard launch check and Review 3 experiment runner are included in the expanded CI workflow. Their results are pending the next workflow run.
 
 ## 9. Risk management and stakeholder assumptions
 
