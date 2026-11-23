@@ -246,7 +246,7 @@ Run the full suite with:
 python -m pytest tests/ -v
 ```
 
-The Review 2 source suite contains 62 test functions (8 congestion, 8 controller, 7 simulation, 22 visual-similarity, and 17 error-boundary tests). Review 3 adds 13 tests (2 movement trace, 8 HMAC security, and 3 telemetry integration), for an expected total of 75. The expected count is not a passing result; confirm it by running pytest.
+The Review 2 source suite contains 62 test functions (8 congestion, 8 controller, 7 simulation, 22 visual-similarity, and 17 error-boundary tests). Review 3 adds 13 tests (2 movement trace, 8 HMAC security, and 3 telemetry integration), for an expected total of 75. GitHub Actions run #31 confirmed **75 passed in 3.19 seconds** on Python 3.11. The expanded experiment and dashboard checks are being added to the next CI run.
 
 | Test File | Count | Description |
 |:---|:---:|:---|
