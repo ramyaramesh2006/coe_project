@@ -1,0 +1,4 @@
+# Optional dependencies for the Review 3 interactive dashboard
+-r requirements.txt
+streamlit>=1.30.0
+plotly>=5.0.0
