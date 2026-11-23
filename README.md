@@ -192,7 +192,7 @@ coe_project/
 │   ├── test_error_boundaries.py
 │   ├── test_movement_trace.py
 │   ├── test_telemetry_security.py
-│   └── test_telemetry_integration.py
+│   ├── test_telemetry_integration.py\n│   └── test_projected_occupancy_gate.py
 ├── results/
 └── docs/
     ├── Review_1_Report.md
@@ -246,7 +246,7 @@ Run the full suite with:
 python -m pytest tests/ -v
 ```
 
-The Review 2 source suite contains 62 test functions (8 congestion, 8 controller, 7 simulation, 22 visual-similarity, and 17 error-boundary tests). Review 3 adds 13 tests (2 movement trace, 8 HMAC security, and 3 telemetry integration), for an expected total of 75. GitHub Actions run #31 confirmed **75 passed in 3.19 seconds** on Python 3.11. The expanded experiment and dashboard checks are being added to the next CI run.
+The Review 2 source suite contains 62 test functions (8 congestion, 8 controller, 7 simulation, 22 visual-similarity, and 17 error-boundary tests). Review 3 adds 14 tests (2 movement trace, 8 HMAC security, 3 telemetry integration, and 1 projected-occupancy gate), for a total of 76. GitHub Actions run #54 confirmed **76 passed in 1.81 seconds** on Python 3.11; the experiment runner and dashboard startup smoke test also passed.
 
 | Test File | Count | Description |
 |:---|:---:|:---|
@@ -257,7 +257,7 @@ The Review 2 source suite contains 62 test functions (8 congestion, 8 controller
 | `test_error_boundaries.py` | 17 | Defensive and error-boundary tests |
 | `test_movement_trace.py` | 2 | Timestamped worker movement segments |
 | `test_telemetry_security.py` | 8 | HMAC, tamper, freshness, replay checks |
-| `test_telemetry_integration.py` | 3 | Authenticated sensor data, fallback, S&F integration |
+| `test_telemetry_integration.py` | 3 | Authenticated sensor data, fallback, S&F integration |\n| `test_projected_occupancy_gate.py` | 1 | Projected occupancy at aisle entry |
 
 ## Documentation
 
