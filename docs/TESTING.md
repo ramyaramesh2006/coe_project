@@ -1,9 +1,9 @@
 # Testing Guide — Aisle Congestion Simulator & Wave-Release Controller
 
 **Document:** Test Strategy, Coverage Rationale, and Execution Guide
-**Review Stage:** Review 3 implementation (validation pending)
+**Review Stage:** Review 3 implementation (75 tests passed; experiment/dashboard checks pending)
 **Existing Review 2 Tests:** 62 test functions in source  
-**New Review 3 Tests:** 13 added; expected total 75, execution pending
+**New Review 3 Tests:** 13 added; total 75 passed in GitHub Actions run #31
 
 ---
 
@@ -125,5 +125,5 @@ These tests verify that every public function handles malformed, extreme, or mis
 
 - GitHub Actions is configured to run `python -m pytest tests/ -v` for pushes to `main` and `review3-implementation`, and for pull requests targeting `main`.
 - Fixed seeds (`seed=42` default, multi-seed: 42/101/202/303/404) support reproducible simulation tests.
-- The expected 75-test count is based on the test functions listed above (62 existing + 13 Review 3). Treat it as unverified until the pull-request CI result reports completion.
+- GitHub Actions run #31 executed all 75 listed tests on Python 3.11: **75 passed in 3.19 seconds**. The newer workflow also runs the Review 3 experiment script and dashboard smoke test; those checks are pending.
 - The dashboard uses optional dependencies installed separately with `pip install -r requirements-dashboard.txt`.
