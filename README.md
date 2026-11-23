@@ -18,7 +18,9 @@ A discrete-event simulation system and intelligent wave-release dispatching cont
 
 ## Table of Contents
 - [Project Overview](#project-overview)
-- [Review 2 Improvements](#review-2-improvements)\n- [Review 3 Additions](#review-3-additions)
+- [Review 2 Improvements](#review-2-improvements)
+- [Review 3 Additions](#review-3-additions)
+- [Review 3 Additions](#review-3-additions)
 - [Architecture](#architecture)
 - [Modules](#modules)
 - [Scenarios](#scenarios)
@@ -64,6 +66,17 @@ This project implements a **discrete-event simulation model** combined with a **
 
 ---
 
+## Review 3 Additions
+
+### Timestamped worker movement
+`WarehouseSimulation.get_movement_trace()` exposes travel and pick segments with worker/order IDs, simulation timestamps, and start/end grid coordinates. The trace feeds the 2D floor dashboard.
+
+### Interactive 2D floor dashboard
+Install optional dependencies with `pip install -r requirements-dashboard.txt`, then run `streamlit run dashboard/app.py`. Select Normal, Peak, or Extreme load, toggle wave-release control, and scrub simulation time to inspect worker movement and aisle congestion.
+
+### Telemetry integrity component
+`src/telemetry_security.py` provides HMAC-SHA256 signing, constant-time signature verification, packet freshness checks, and nonce-based replay detection. This is a simulation-layer security component; it does not replace TLS, device identity, secure key provisioning, or a live MQTT deployment.
+
 ## Architecture
 
 ```
@@ -105,7 +118,9 @@ Scenarios A–H: 8 operating conditions
 | `src/controller.py` | Wave-release controller: ALLOW/DELAY/BLOCK + MANUAL FALLBACK pacing |
 | `src/simulation.py` | Discrete-event engine: visual-similarity pick times, S&F integration, A* rerouting, timestamped movement trace |
 | `src/visual_similarity.py` | **[NEW Rev 2]** Part catalogue, pick-time model, mispick simulation |
-| `src/store_and_forward.py` | **[NEW Rev 2]** S&F queue, replay engine, network outage monitor |\n| `src/telemetry_security.py` | **[NEW Rev 3]** HMAC-SHA256 telemetry integrity, freshness, replay checks |
+| `src/store_and_forward.py` | **[NEW Rev 2]** S&F queue, replay engine, network outage monitor |
+| `src/telemetry_security.py` | **[NEW Rev 3]** HMAC-SHA256 telemetry integrity, freshness, and replay checks |
+| `src/telemetry_security.py` | **[NEW Rev 3]** HMAC-SHA256 telemetry integrity, freshness, replay checks |
 | `src/metrics.py` | KPIs: throughput, cost, emissions, mispick count, verification overhead |
 | `src/scenarios.py` | 8 scenarios: Low Load → Extreme Load + S&F + Visual Similarity + Rerouting |
 
@@ -152,7 +167,13 @@ Scenarios A–H: 8 operating conditions
 coe_project/
 ├── Aisle_Congestion_Simulator.ipynb      # Interactive Jupyter Notebook
 ├── README.md                             # This file
-├── requirements.txt                      # Core dependencies\n├── requirements-dashboard.txt             # Optional Streamlit/Plotly dependencies\n├── dashboard/\n│   └── app.py                              # Review 3 interactive 2D floor dashboard
+├── requirements.txt                      # Core dependencies
+├── requirements-dashboard.txt             # Optional Streamlit/Plotly dependencies
+├── dashboard/
+│   └── app.py                              # Review 3 interactive 2D floor dashboard
+├── requirements-dashboard.txt             # Optional Streamlit/Plotly dependencies
+├── dashboard/
+│   └── app.py                              # Review 3 interactive 2D floor dashboard
 ├── run_experiments.py                    # Master experiment runner
 ├── build_notebook.py                     # Notebook generator
 ├── data/
@@ -165,6 +186,7 @@ coe_project/
 │   ├── simulation.py                     # Discrete-event engine (Rev 2)
 │   ├── visual_similarity.py              # ★ NEW: Part catalogue + pick model
 │   ├── store_and_forward.py              # ★ NEW: S&F queue + network monitor
+│   ├── telemetry_security.py             # Review 3 HMAC telemetry checks
 │   ├── metrics.py                        # KPIs (+ mispick cost, Rev 2)
 │   └── scenarios.py                      # 8 scenarios (A–H, Rev 2)
 ├── tests/
@@ -226,20 +248,23 @@ coe_project/
 
 ## Testing
 
+Run the full suite with:
+
 ```bash
 python -m pytest tests/ -v
 ```
 
-**Result: 45 passed in ~4.3 s (100% success rate)**
+The Review 2 test guide lists 58 existing tests. Review 3 adds 10 tests (2 movement-trace tests and 8 telemetry-security tests), for an expected total of 68. The expected count is not a passing result; confirm it from the Review 3 CI run.
 
 | Test File | Count | Description |
 |:---|:---:|:---|
 | `test_congestion.py` | 8 | Calculation, classification, edge cases |
 | `test_controller.py` | 8 | ALLOW/DELAY/BLOCK, boundaries, fallback |
 | `test_simulation.py` | 7 | Geometry, multirun, scenario integration |
-| `test_visual_similarity.py` | **22** | Part catalogue, pick model, S&F, rerouting |
-
----
+| `test_visual_similarity.py` | 22 | Part catalogue, pick model, S&F, rerouting |
+| `test_error_boundaries.py` | 13 | Defensive and error-boundary tests |
+| `test_movement_trace.py` | 2 | Timestamped worker movement segments |
+| `test_telemetry_security.py` | 8 | HMAC, tamper, freshness, replay checks |
 
 ## Documentation
 
@@ -256,7 +281,9 @@ python -m pytest tests/ -v
 ## Limitations
 
 1. **Constant Walking Speed:** 1.0 m/s; no cart acceleration or turning inertia modelled.
-2. **Static Part-Aisle Mapping:** SKU location reassignments not dynamically tracked.
-3. **No Physical Gating Enforcement:** Worker compliance assumed; badge gates deferred to Review 3.
-4. **No live sensor/MQTT deployment:** HMAC signing, freshness, and replay checks are implemented as a simulation-layer component; live device provisioning and broker integration remain future work.\n5. **No physical pilot / AGV integration:** Review 3 dashboard is driven by synthetic simulation data; warehouse pilot validation and AGV/MAPF integration are not yet implemented.\n6. **No ML wave batching:** Current order release remains rule/threshold based; predictive batching remains future work.
-5. **Centroid Coordinates:** Distances model aisle centrelines, not individual shelf faces.
+2. **Static Part-Aisle Mapping:** SKU location reassignments are not dynamically tracked.
+3. **No Physical Gating Enforcement:** Worker compliance is assumed; badge-gate hardware is not integrated.
+4. **No Live Sensor/MQTT Deployment:** HMAC signing, freshness, and replay checks are implemented as a simulation-layer component; live device provisioning and broker integration remain future work.
+5. **No Physical Pilot / AGV Integration:** The dashboard uses synthetic simulation data; warehouse pilot validation and AGV/MAPF integration are not implemented.
+6. **No ML Wave Batching:** Current order release remains rule/threshold based; predictive batching remains future work.
+7. **Centroid Coordinates:** Distances model aisle centrelines, not individual shelf faces.
