@@ -122,7 +122,7 @@ These tests verify that every public function handles malformed, extreme, or mis
 
 ## 7. CI / Reproducibility
 
-- All tests run in < 30 seconds on a standard laptop.
-- Fixed seeds (`seed=42` default, multi-seed: 42/101/202/303/404) ensure deterministic output.
-- No network calls, no file I/O side-effects (S&F spool writes to `results/` which is gitignored during tests).
-- Compatible: Python 3.9, 3.10, 3.11, 3.12, 3.13.
+- GitHub Actions is configured to run `python -m pytest tests/ -v` for pushes to `main` and `review3-implementation`, and for pull requests targeting `main`.
+- Fixed seeds (`seed=42` default, multi-seed: 42/101/202/303/404) support reproducible simulation tests.
+- The expected 68-test count is based on the test functions listed above. Treat it as unverified until the pull-request CI result reports completion.
+- The dashboard uses optional dependencies installed separately with `pip install -r requirements-dashboard.txt`.
