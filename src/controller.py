@@ -49,7 +49,15 @@ def wave_release_controller(
 
     # Handle Sensor / Network Failure
     if not sensor_available:
-        eff_congestion = float(fallback_congestion)
+        # Use the conservative fallback estimate and any locally cached occupancy
+        # to avoid releasing into a known over-threshold aisle during telemetry loss.
+        projected_local_congestion = 0.0
+        if current_workers is not None:
+            projected_local_congestion = (
+                (max(0, int(current_workers)) + max(0, int(requested_workers)))
+                / max(1, int(aisle_capacity))
+            ) * 100.0
+        eff_congestion = max(float(fallback_congestion), projected_local_congestion)
         level = classify_congestion(eff_congestion, thresholds)
         # In manual fallback, use conservative fixed-rate pacing (allow at most 1 worker)
         released = min(requested_workers, 1) if eff_congestion < safe_threshold else 0
