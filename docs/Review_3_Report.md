@@ -265,7 +265,7 @@ A source-level count of test functions gives:
 | **Review 3 additions** | **13** |
 | **Expected source total** | **75** |
 
-**Important:** 75 is a count of test functions in the repository, not a passing-test result. A local clone could not be obtained in the current execution environment because access to github.com failed at DNS resolution. No completed GitHub Actions run was available when this report was prepared. Therefore, this report does not claim that 75 tests passed.
+**Validation result:** GitHub Actions run #31 reported **75 passed in 3.19 seconds** on Python 3.11. The count and pass result include all three Review 3 test files. The later experiment/dashboard CI steps are a separate validation run and are not yet confirmed.
 
 Required validation command:
 
